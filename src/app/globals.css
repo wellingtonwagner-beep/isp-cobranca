@@ -3,25 +3,36 @@
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #f5f3ff;
+  --foreground: #1e1b4b;
+  --sidebar-bg: #1e1b4b;
+  --sidebar-text: #c4b5fd;
+  --sidebar-active: #7c3aed;
+  --primary: #7c3aed;
+  --primary-light: #ede9fe;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 }
 
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #f1f1f1; }
+::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
+  .text-balance { text-wrap: balance; }
+  .sidebar-item {
+    @apply flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer;
+  }
+  .sidebar-item:hover {
+    @apply bg-purple-800/40 text-white;
+  }
+  .sidebar-item.active {
+    @apply bg-purple-600 text-white;
   }
 }

@@ -1,0 +1,237 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import { MessageSquare, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react'
+import { formatDateBR, formatCurrency } from '@/lib/utils'
+
+interface CobrancaLog {
+  id: string
+  stage: string
+  status: string
+  whatsappTo: string
+  testMode: boolean
+  sentAt: string
+  client: { name: string; whatsapp: string }
+  invoice: { amount: number; dueDate: string }
+}
+
+interface CobrancaData {
+  summary: { planned: number; sent: number; blocked: number; failed: number; pending: number }
+  stagePreview: { stage: string; label: string; count: number; targetDate: string }[]
+  todayLogs: CobrancaLog[]
+  recentLogs: CobrancaLog[]
+}
+
+const stageLabels: Record<string, string> = {
+  D_MINUS_5: 'D-5', D_MINUS_2: 'D-2', D_ZERO: 'D-0',
+  D_PLUS_1: 'D+1', D_PLUS_5: 'D+5', D_PLUS_10: 'D+10', D_PLUS_14: 'D+14',
+}
+
+const statusConfig: Record<string, { label: string; variant: 'success' | 'warning' | 'danger' | 'muted' | 'info' }> = {
+  sent: { label: 'Enviado', variant: 'success' },
+  blocked_test: { label: 'Bloqueado (teste)', variant: 'warning' },
+  failed: { label: 'Falhou', variant: 'danger' },
+  skipped_paid: { label: 'Já pago', variant: 'muted' },
+  skipped_no_phone: { label: 'Sem telefone', variant: 'muted' },
+  blocked_duplicate: { label: 'Duplicata', variant: 'info' },
+}
+
+export default function CobrancasPage() {
+  const [data, setData] = useState<CobrancaData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [triggering, setTriggering] = useState(false)
+
+  async function load() {
+    setLoading(true)
+    try {
+      const res = await fetch('/api/cobrancas')
+      const json = await res.json()
+      setData(json)
+    } catch {
+      // ignore
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function triggerCron() {
+    setTriggering(true)
+    try {
+      await fetch('/api/cron', {
+        method: 'POST',
+        headers: { 'x-cron-secret': 'troque-em-producao-123' },
+      })
+      await load()
+    } finally {
+      setTriggering(false)
+    }
+  }
+
+  useEffect(() => { load() }, [])
+
+  const summary = data?.summary
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Central de Cobranças</h1>
+          <p className="text-gray-500 text-sm mt-1">Gestão completa dos disparos de cobrança via WhatsApp</p>
+        </div>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={load} loading={loading}>
+            <RefreshCw size={14} /> Atualizar
+          </Button>
+          <Button size="sm" onClick={triggerCron} loading={triggering}>
+            <MessageSquare size={14} /> Disparar Agora
+          </Button>
+        </div>
+      </div>
+
+      {/* Cards de resumo */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+        <SummaryCard
+          title="Previstos Hoje"
+          value={summary?.planned ?? 0}
+          sub="faturas em 6 estágios"
+          icon={Clock}
+          color="text-purple-600"
+          bg="bg-purple-50"
+        />
+        <SummaryCard
+          title="Enviados"
+          value={summary?.sent ?? 0}
+          sub="entregues via WhatsApp"
+          icon={CheckCircle}
+          color="text-green-600"
+          bg="bg-green-50"
+        />
+        <SummaryCard
+          title="Bloqueados (teste)"
+          value={summary?.blocked ?? 0}
+          sub="modo teste ativo"
+          icon={XCircle}
+          color="text-amber-600"
+          bg="bg-amber-50"
+        />
+        <SummaryCard
+          title="Pendentes"
+          value={summary?.pending ?? 0}
+          sub="aguardando próximo cron"
+          icon={Clock}
+          color="text-blue-600"
+          bg="bg-blue-50"
+        />
+      </div>
+
+      {/* Previstos para hoje */}
+      {data?.stagePreview && data.stagePreview.length > 0 && (
+        <Card className="mb-6">
+          <div className="px-5 py-3 border-b border-purple-50">
+            <h2 className="font-semibold text-gray-800">Previstos para Hoje</h2>
+          </div>
+          <CardContent>
+            <div className="flex flex-wrap gap-3">
+              {data.stagePreview.map((s) => (
+                <div key={s.stage} className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">
+                  <span className="text-xs font-bold text-purple-700">{stageLabels[s.stage]}</span>
+                  <span className="text-xs text-gray-600">{s.label}</span>
+                  <span className="text-xs font-semibold text-purple-900 bg-purple-200 px-1.5 py-0.5 rounded-full">
+                    {s.count}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Histórico de Envios */}
+      <Card>
+        <div className="px-5 py-3 border-b border-purple-50">
+          <h2 className="font-semibold text-gray-800">Histórico de Envios</h2>
+          <p className="text-xs text-gray-400 mt-0.5">Últimos 7 dias</p>
+        </div>
+        <CardContent className="p-0">
+          {loading ? (
+            <div className="py-12 text-center text-gray-400 text-sm">Carregando...</div>
+          ) : !data?.recentLogs?.length ? (
+            <div className="py-12 text-center text-gray-400 text-sm">
+              Nenhum envio registrado nos últimos 7 dias.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase">
+                    <th className="px-4 py-2 text-left">Cliente</th>
+                    <th className="px-4 py-2 text-left">Estágio</th>
+                    <th className="px-4 py-2 text-left">Valor</th>
+                    <th className="px-4 py-2 text-left">Vencimento</th>
+                    <th className="px-4 py-2 text-left">Status</th>
+                    <th className="px-4 py-2 text-left">Enviado em</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.recentLogs.map((log) => {
+                    const sc = statusConfig[log.status] || { label: log.status, variant: 'muted' as const }
+                    return (
+                      <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50">
+                        <td className="px-4 py-2.5">
+                          <div className="font-medium text-gray-800">{log.client?.name}</div>
+                          <div className="text-xs text-gray-400">{log.whatsappTo}</div>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className="text-xs font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                            {stageLabels[log.stage] || log.stage}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-700">
+                          {formatCurrency(log.invoice?.amount || 0)}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-500 text-xs">
+                          {log.invoice?.dueDate ? formatDateBR(log.invoice.dueDate) : '—'}
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Badge variant={sc.variant}>{sc.label}</Badge>
+                          {log.testMode && (
+                            <Badge variant="info" className="ml-1">teste</Badge>
+                          )}
+                        </td>
+                        <td className="px-4 py-2.5 text-gray-400 text-xs">
+                          {new Date(log.sentAt).toLocaleString('pt-BR')}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  )
+}
+
+function SummaryCard({
+  title, value, sub, icon: Icon, color, bg,
+}: {
+  title: string; value: number; sub: string; icon: React.ElementType; color: string; bg: string
+}) {
+  return (
+    <Card>
+      <CardContent className="py-5">
+        <div className={`${bg} w-8 h-8 rounded-lg flex items-center justify-center mb-3`}>
+          <Icon className={`${color} w-4 h-4`} />
+        </div>
+        <p className="text-2xl font-bold text-gray-900">{value}</p>
+        <p className="text-sm font-medium text-gray-700 mt-0.5">{title}</p>
+        <p className="text-xs text-gray-400">{sub}</p>
+      </CardContent>
+    </Card>
+  )
+}

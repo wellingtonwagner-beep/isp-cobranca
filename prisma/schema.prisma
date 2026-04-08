@@ -1,0 +1,91 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Client {
+  id         String   @id
+  name       String
+  cpfCnpj    String?
+  email      String?
+  phone      String?
+  whatsapp   String?
+  status     String   @default("ativo")
+  city       String?
+  planName   String?
+  contractId String?
+  sgpRaw     String?
+  syncedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  invoices    Invoice[]
+  messageLogs MessageLog[]
+
+  @@map("clients")
+}
+
+model Invoice {
+  id         String   @id
+  clientId   String
+  client     Client   @relation(fields: [clientId], references: [id])
+  dueDate    DateTime
+  amount     Float
+  status     String   @default("aberta")
+  boletoUrl  String?
+  pixCode    String?
+  sgpRaw     String?
+  syncedAt   DateTime @default(now())
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  messageLogs MessageLog[]
+
+  @@index([dueDate])
+  @@index([clientId])
+  @@map("invoices")
+}
+
+model MessageLog {
+  id             String   @id @default(cuid())
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id])
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+  stage          String
+  whatsappTo     String
+  messageBody    String
+  pixBody        String?
+  status         String
+  errorMessage   String?
+  evolutionMsgId String?
+  testMode       Boolean  @default(false)
+  sentAt         DateTime @default(now())
+
+  @@unique([invoiceId, stage])
+  @@index([clientId])
+  @@index([sentAt])
+  @@index([stage, sentAt])
+  @@map("message_logs")
+}
+
+model Config {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("config")
+}
+
+model Holiday {
+  date        String   @id
+  description String
+  source      String   @default("manual")
+  createdAt   DateTime @default(now())
+
+  @@map("holidays")
+}
