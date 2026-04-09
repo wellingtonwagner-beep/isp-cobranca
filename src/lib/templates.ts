@@ -91,7 +91,7 @@ export const TEMPLATES: MessageTemplate[] = [
     stage: 'D_MINUS_5',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! Tudo bem? 😊
 
-Sua fatura da *UltraNet Telecom* tá chegando! Vence dia *${v.data_vencimento}*.
+Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* tá chegando! Vence dia *${v.data_vencimento}*.
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -103,7 +103,7 @@ Qualquer coisa, estamos por aqui!`,
     stage: 'D_MINUS_2',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! 😄
 
-Sua fatura da *UltraNet Telecom* vence dia *${v.data_vencimento}*!
+Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* vence dia *${v.data_vencimento}*!
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -118,7 +118,7 @@ Pra facilitar, segue o boleto e o PIX prontinho pra você 👇`,
     stage: 'D_ZERO',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! 👋
 
-Sua fatura da *UltraNet Telecom* vence *hoje*!
+Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* vence *hoje*!
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -131,7 +131,7 @@ Ainda dá tempo de pagar e manter sua internet voando! 🚀`,
     stage: 'D_PLUS_1',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! Tudo certo? 🙂
 
-Passando pra avisar que sua fatura da *UltraNet Telecom* venceu ontem (*${v.data_vencimento}*).
+Passando pra avisar que sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* venceu ontem (*${v.data_vencimento}*).
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -144,7 +144,7 @@ Mas relaxa, ainda dá pra pagar tranquilamente pelo boleto ou PIX! 😉`,
     stage: 'D_PLUS_5',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! 👋
 
-Sua fatura da *UltraNet Telecom* tá com alguns dias em aberto e a gente quer te ajudar a resolver rapidinho!
+Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* tá com alguns dias em aberto e a gente quer te ajudar a resolver rapidinho!
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -157,7 +157,7 @@ Regularizando, sua internet continua voando! 🚀`,
     stage: 'D_PLUS_10',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}!
 
-A gente sabe que a correria do dia a dia é grande, mas sua fatura da *UltraNet Telecom* tá precisando de uma atenção!
+A gente sabe que a correria do dia a dia é grande, mas sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* tá precisando de uma atenção!
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -174,7 +174,7 @@ Ou fale com a gente:
   },
   {
     stage: 'D_PLUS_14',
-    mainMessage: (v: TemplateVars) => `${v.nome}, precisamos falar sobre sua fatura da *UltraNet Telecom*.
+    mainMessage: (v: TemplateVars) => `${v.nome}, precisamos falar sobre sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}*.
 
 Sua conta está em aberto há mais de 14 dias e infelizmente o *serviço será suspenso amanhã* caso não seja regularizada.
 

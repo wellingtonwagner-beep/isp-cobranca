@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>QR Code WhatsApp</title>
+  <style>
+    body { background: #111; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; font-family: sans-serif; color: #fff; }
+    img { width: 300px; height: 300px; border: 4px solid #25D366; border-radius: 8px; }
+    p { margin-top: 16px; color: #aaa; font-size: 14px; }
+    button { margin-top: 12px; padding: 10px 24px; background: #25D366; color: #fff; border: none; border-radius: 6px; cursor: pointer; font-size: 15px; }
+  </style>
+</head>
+<body>
+  <h2 style="color:#25D366">📱 Conectar WhatsApp</h2>
+  <img id="qr" src="" alt="Carregando QR Code..."/>
+  <p id="status">Carregando...</p>
+  <button onclick="load()">🔄 Atualizar QR Code</button>
+
+  <script>
+    async function load() {
+      document.getElementById('status').textContent = 'Carregando novo QR Code...'
+      try {
+        const res = await fetch('/api/qr')
+        const data = await res.json()
+        if (data.base64) {
+          document.getElementById('qr').src = data.base64
+          document.getElementById('status').textContent = 'Escaneie com o WhatsApp agora! (expira em ~60s)'
+        } else {
+          document.getElementById('status').textContent = data.error || 'Erro ao carregar'
+        }
+      } catch(e) {
+        document.getElementById('status').textContent = 'Erro: ' + e.message
+      }
+    }
+    load()
+    // Auto-refresh a cada 55 segundos
+    setInterval(load, 55000)
+  </script>
+</body>
+</html>

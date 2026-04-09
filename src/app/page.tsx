@@ -108,8 +108,8 @@ export default async function DashboardPage() {
             </div>
             <p className="text-xs text-gray-500 mb-4">Sincronize clientes e faturas do SGP manualmente.</p>
             <div className="flex gap-2">
-              <SyncButton endpoint="/api/sync/clientes" label="Clientes" />
-              <SyncButton endpoint="/api/sync/faturas" label="Faturas" />
+              <SyncButton action="clientes" label="Clientes" />
+              <SyncButton action="faturas" label="Faturas" />
             </div>
           </CardContent>
         </Card>
@@ -150,14 +150,15 @@ export default async function DashboardPage() {
   )
 }
 
-function SyncButton({ endpoint, label }: { endpoint: string; label: string }) {
+function SyncButton({ action, label }: { action: string; label: string }) {
   return (
     <form
       action={async () => {
         'use server'
-        await fetch(`http://localhost:3000${endpoint}`, {
+        await fetch(`http://localhost:${process.env.PORT || 3000}/api/admin/sync`, {
           method: 'POST',
-          headers: { 'x-cron-secret': process.env.CRON_SECRET || '' },
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action }),
         }).catch(() => {})
       }}
     >

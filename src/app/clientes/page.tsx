@@ -57,7 +57,11 @@ export default function ClientesPage() {
   async function syncClients() {
     setSyncing(true)
     try {
-      await fetch('/api/sync/clientes', { method: 'POST', headers: { 'x-cron-secret': 'troque-em-producao-123' } })
+      await fetch('/api/admin/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'clientes' }),
+      })
       await load()
     } finally {
       setSyncing(false)

@@ -60,10 +60,7 @@ export default function CobrancasPage() {
   async function triggerCron() {
     setTriggering(true)
     try {
-      await fetch('/api/cron', {
-        method: 'POST',
-        headers: { 'x-cron-secret': 'troque-em-producao-123' },
-      })
+      await fetch('/api/admin/cron', { method: 'POST' })
       await load()
     } finally {
       setTriggering(false)

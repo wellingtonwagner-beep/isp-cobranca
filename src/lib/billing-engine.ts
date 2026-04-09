@@ -72,12 +72,11 @@ export async function runDailyCheck(): Promise<BillingEngineResult> {
     }
 
     for (const invoice of invoices) {
-      // Para D+0, revalida pagamento direto no SGP
-      if (stageConfig.stage === 'D_ZERO') {
+      // Para D+0, revalida pagamento direto no SGP antes de disparar mensagem
+      if (stageConfig.stage === 'D_ZERO' && invoice.client.cpfCnpj) {
         try {
-          const sgpInvoice = await sgp.getInvoiceById(invoice.id)
-          if (sgpInvoice && (sgpInvoice.status === 'paga' || sgpInvoice.status === 'pago')) {
-            // Atualiza status local
+          const paid = await sgp.checkInvoicePaid(invoice.client.cpfCnpj, invoice.id)
+          if (paid) {
             await prisma.invoice.update({
               where: { id: invoice.id },
               data: { status: 'paga' },
