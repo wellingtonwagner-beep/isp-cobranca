@@ -2,58 +2,60 @@ import { prisma } from './prisma'
 import { dispatchMessage } from './message-dispatcher'
 import { isWithinSendWindow } from './send-window'
 import { isTodayHoliday } from './holidays'
-import { sgp } from './sgp'
+import { createSgpClient } from './sgp'
+import { createEvolutionClient } from './evolution'
 import { todayStrBRT, addDaysBRT, dateToBRTString, parseDate } from './utils'
 import { STAGES } from './templates'
 import type { BillingEngineResult, Stage } from '@/types'
 
-async function getConfig() {
-  const configs = await prisma.config.findMany()
-  const map: Record<string, string> = {}
-  for (const c of configs) map[c.key] = c.value
-  return {
-    testMode: map['test_mode'] === 'true',
-    windowStart: map['send_window_start'] || '08:00',
-    windowEnd: map['send_window_end'] || '20:00',
-    sendDays: map['send_days'] || '1,2,3,4,5,6',
-  }
-}
+export async function runDailyCheck(companyId: string): Promise<BillingEngineResult> {
+  // Carrega configurações da empresa
+  const settings = await prisma.companySettings.findUnique({ where: { companyId } })
 
-export async function runDailyCheck(): Promise<BillingEngineResult> {
-  const config = await getConfig()
+  const testMode = settings?.testMode ?? true
+  const windowStart = settings?.sendWindowStart || '08:00'
+  const windowEnd = settings?.sendWindowEnd || '20:00'
+  const sendDays = settings?.sendDays || '1,2,3,4,5,6'
+
   const today = todayStrBRT()
 
   const result: BillingEngineResult = {
     date: today,
-    testMode: config.testMode,
+    testMode,
     stages: [],
     totalSent: 0,
     totalSkipped: 0,
     totalErrors: 0,
   }
 
-  // Verifica janela de envio (em prod não-teste)
-  if (!config.testMode) {
-    if (!isWithinSendWindow(config.windowStart, config.windowEnd, config.sendDays)) {
-      console.log(`[BillingEngine] Fora da janela de envio. Abortando.`)
+  if (!testMode) {
+    if (!isWithinSendWindow(windowStart, windowEnd, sendDays)) {
+      console.log(`[BillingEngine][${companyId}] Fora da janela de envio. Abortando.`)
       return result
     }
 
-    const isHoliday = await isTodayHoliday()
+    const isHoliday = await isTodayHoliday(companyId)
     if (isHoliday) {
-      console.log(`[BillingEngine] Hoje é feriado. Abortando.`)
+      console.log(`[BillingEngine][${companyId}] Hoje é feriado. Abortando.`)
       return result
     }
   }
 
-  // Processa cada estágio
+  const sgpClient = createSgpClient(settings || {})
+  const evolutionClient = createEvolutionClient(settings || {})
+
+  const companySettings = {
+    companyWhatsapp: settings?.companyWhatsapp,
+    companyHours: settings?.companyHours,
+  }
+
   for (const stageConfig of STAGES) {
     const targetDate = addDaysBRT(parseDate(today), -stageConfig.dayOffset)
     const targetDateStr = dateToBRTString(targetDate)
 
-    // Busca faturas com vencimento na data alvo
     const invoices = await prisma.invoice.findMany({
       where: {
+        companyId,
         dueDate: {
           gte: new Date(`${targetDateStr}T00:00:00.000Z`),
           lt: new Date(`${targetDateStr}T23:59:59.999Z`),
@@ -72,10 +74,10 @@ export async function runDailyCheck(): Promise<BillingEngineResult> {
     }
 
     for (const invoice of invoices) {
-      // Para D+0, revalida pagamento direto no SGP antes de disparar mensagem
-      if (stageConfig.stage === 'D_ZERO' && invoice.client.cpfCnpj) {
+      // D+0: valida pagamento em tempo real no SGP
+      if (stageConfig.stage === 'D_ZERO' && invoice.client.cpfCnpj && sgpClient) {
         try {
-          const paid = await sgp.checkInvoicePaid(invoice.client.cpfCnpj, invoice.id)
+          const paid = await sgpClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
           if (paid) {
             await prisma.invoice.update({
               where: { id: invoice.id },
@@ -89,7 +91,14 @@ export async function runDailyCheck(): Promise<BillingEngineResult> {
         }
       }
 
-      const res = await dispatchMessage(invoice.client, invoice, stageConfig.stage as Stage, config.testMode)
+      const res = await dispatchMessage(
+        invoice.client,
+        invoice,
+        stageConfig.stage as Stage,
+        testMode,
+        evolutionClient,
+        companySettings
+      )
 
       if (res.status === 'sent' || res.status === 'blocked_test') {
         stageResult.sent++
@@ -109,6 +118,29 @@ export async function runDailyCheck(): Promise<BillingEngineResult> {
     result.totalErrors += stageResult.errors
   }
 
-  console.log(`[BillingEngine] ${today} | Enviados: ${result.totalSent} | Pulados: ${result.totalSkipped} | Erros: ${result.totalErrors}`)
+  console.log(`[BillingEngine][${companyId}] ${today} | Enviados: ${result.totalSent} | Pulados: ${result.totalSkipped} | Erros: ${result.totalErrors}`)
   return result
+}
+
+/**
+ * Executa o billing engine para todas as empresas ativas.
+ * Usado pelo cron server.
+ */
+export async function runDailyCheckAllCompanies(): Promise<Record<string, BillingEngineResult>> {
+  const companies = await prisma.company.findMany({
+    where: { active: true },
+    select: { id: true },
+  })
+
+  const results: Record<string, BillingEngineResult> = {}
+
+  for (const company of companies) {
+    try {
+      results[company.id] = await runDailyCheck(company.id)
+    } catch (err) {
+      console.error(`[BillingEngine] Erro na empresa ${company.id}:`, err)
+    }
+  }
+
+  return results
 }

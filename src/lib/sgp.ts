@@ -169,17 +169,24 @@ export interface SGPClientesFiltros {
 // Cliente SGP
 // ---------------------------------------------------------------------------
 
+interface SGPConfig {
+  baseUrl: string
+  token: string
+  app: string
+  timeout?: number
+}
+
 export class SGPClient_ {
   private baseUrl: string
   private token: string
   private app: string
   private timeout: number
 
-  constructor() {
-    this.baseUrl = (process.env.SGP_BASE_URL || '').replace(/\/$/, '')
-    this.token   = process.env.SGP_TOKEN || ''
-    this.app     = process.env.SGP_APP   || ''
-    this.timeout = Number(process.env.SGP_TIMEOUT_MS) || 30_000
+  constructor(config?: SGPConfig) {
+    this.baseUrl = (config?.baseUrl || process.env.SGP_BASE_URL || '').replace(/\/$/, '')
+    this.token   = config?.token || process.env.SGP_TOKEN || ''
+    this.app     = config?.app   || process.env.SGP_APP   || ''
+    this.timeout = config?.timeout ?? (Number(process.env.SGP_TIMEOUT_MS) || 30_000)
   }
 
   /**
@@ -411,4 +418,23 @@ export class SGPClient_ {
   }
 }
 
+/**
+ * Cria um SGPClient a partir das configurações de uma empresa.
+ * Retorna null se as credenciais não estiverem configuradas.
+ */
+export function createSgpClient(settings: {
+  sgpBaseUrl?: string | null
+  sgpToken?: string | null
+  sgpApp?: string | null
+}): SGPClient_ | null {
+  const baseUrl = settings.sgpBaseUrl || process.env.SGP_BASE_URL
+  const token = settings.sgpToken || process.env.SGP_TOKEN
+  const app = settings.sgpApp || process.env.SGP_APP
+
+  if (!baseUrl || !token || !app) return null
+
+  return new SGPClient_({ baseUrl, token, app })
+}
+
+// Singleton de fallback para uso sem multi-tenant (compatibilidade)
 export const sgp = new SGPClient_()

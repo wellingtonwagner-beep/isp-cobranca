@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCompanyId } from '@/lib/session'
 
 export async function GET(req: NextRequest) {
+  const companyId = await getCompanyId()
+  if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const { searchParams } = req.nextUrl
     const q = searchParams.get('q') || ''
@@ -9,7 +13,7 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const limit = 50
 
-    const where: Record<string, unknown> = {}
+    const where: Record<string, unknown> = { companyId }
 
     if (q) {
       where.OR = [

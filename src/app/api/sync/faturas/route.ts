@@ -1,84 +1,60 @@
 /**
- * POST /api/sync/faturas
- *
- * Sincroniza faturas em aberto do SGP → banco local.
- *
- * Estratégia: chama o mesmo endpoint URA (/api/ura/clientes/) com status="aberto"
- * e atualiza apenas os registros de Invoice no banco.
- * Clientes não existentes no banco local são ignorados (rodar sync/clientes primeiro).
- *
- * Ordem de execução recomendada no cron:
- *   1. POST /api/sync/clientes  → sincroniza clientes + faturas abertas
- *   2. POST /api/sync/faturas   → atualiza faturas (pode rodar mais vezes ao dia)
+ * POST /api/sync/faturas — chamado pelo cron-server (CRON_SECRET required)
+ * Sincroniza faturas de TODAS as empresas ativas.
  */
-
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sgp } from '@/lib/sgp'
+import { createSgpClient } from '@/lib/sgp'
 
 export async function POST(req: NextRequest) {
-  const secret     = req.headers.get('x-cron-secret')
-  const isInternal = secret === process.env.CRON_SECRET
-
-  if (!isInternal && process.env.NODE_ENV === 'production') {
+  const secret = req.headers.get('x-cron-secret')
+  if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  try {
-    const clientes = await sgp.getClientesComFaturaAberta()
+  const companies = await prisma.company.findMany({
+    where: { active: true },
+    include: { settings: true },
+  })
 
-    let synced  = 0
-    let skipped = 0
-    let errors  = 0
+  const report: Record<string, unknown> = {}
 
-    for (const c of clientes) {
-      const clientId = c.cpfcnpj.replace(/\D/g, '')
+  for (const company of companies) {
+    const sgpClient = createSgpClient(company.settings || {})
+    if (!sgpClient) { report[company.id] = { skipped: 'SGP não configurado' }; continue }
 
-      // Garante que o cliente existe no banco antes de criar a fatura
-      const clientExists = await prisma.client.findUnique({ where: { id: clientId } })
-      if (!clientExists) { skipped++; continue }
+    let synced = 0, skipped = 0, errors = 0
 
-      for (const t of c.titulos ?? []) {
-        if (t.status !== 'aberto') continue
+    try {
+      const clientes = await sgpClient.getClientesComFaturaAberta()
 
-        try {
-          const faturaId = String(t.id)
-          const dueDate  = new Date(`${t.dataVencimento}T03:00:00.000Z`)
-          const amount   = t.valorCorrigido ?? t.valor
+      for (const c of clientes) {
+        const externalId = c.cpfcnpj.replace(/\D/g, '')
+        const client = await prisma.client.findUnique({
+          where: { companyId_externalId: { companyId: company.id, externalId } },
+        })
+        if (!client) { skipped++; continue }
 
-          await prisma.invoice.upsert({
-            where: { id: faturaId },
-            update: {
-              dueDate,
-              amount,
-              status:    'aberta',
-              boletoUrl: t.link      || null, // URL completa já vem do URA
-              pixCode:   t.codigoPix || null,
-              sgpRaw:    JSON.stringify(t),
-              syncedAt:  new Date(),
-            },
-            create: {
-              id:        faturaId,
-              clientId,
-              dueDate,
-              amount,
-              status:    'aberta',
-              boletoUrl: t.link      || null,
-              pixCode:   t.codigoPix || null,
-              sgpRaw:    JSON.stringify(t),
-            },
-          })
-          synced++
-        } catch (err) {
-          console.error(`[sync/faturas] Erro fatura ${t.id}:`, err)
-          errors++
+        for (const t of c.titulos ?? []) {
+          if (t.status !== 'aberto') continue
+          try {
+            const invoiceExternalId = String(t.id)
+            const dueDate = new Date(`${t.dataVencimento}T03:00:00.000Z`)
+            const amount = t.valorCorrigido ?? t.valor
+
+            await prisma.invoice.upsert({
+              where: { companyId_externalId: { companyId: company.id, externalId: invoiceExternalId } },
+              update: { dueDate, amount, status: 'aberta', boletoUrl: t.link || null, pixCode: t.codigoPix || null, sgpRaw: JSON.stringify(t), syncedAt: new Date() },
+              create: { companyId: company.id, externalId: invoiceExternalId, clientId: client.id, dueDate, amount, status: 'aberta', boletoUrl: t.link || null, pixCode: t.codigoPix || null, sgpRaw: JSON.stringify(t) },
+            })
+            synced++
+          } catch (err) { errors++; console.error(`[sync/faturas][${company.id}] Erro:`, err) }
         }
       }
-    }
+    } catch (err) { errors++; console.error(`[sync/faturas][${company.id}] Falha geral:`, err) }
 
-    return NextResponse.json({ ok: true, synced, skipped, errors })
-  } catch (err) {
-    console.error('[/api/sync/faturas]', err)
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+    report[company.id] = { synced, skipped, errors }
   }
+
+  return NextResponse.json({ ok: true, report })
 }

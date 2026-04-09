@@ -7,8 +7,70 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Empresa (tenant) ────────────────────────────────────────────────────────
+
+model Company {
+  id           String   @id @default(cuid())
+  cnpj         String   @unique
+  name         String
+  email        String   @unique
+  passwordHash String
+  logo         String?
+  plan         String   @default("free")
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  settings    CompanySettings?
+  clients     Client[]
+  invoices    Invoice[]
+  messageLogs MessageLog[]
+  configs     Config[]
+  holidays    Holiday[]
+
+  @@map("companies")
+}
+
+model CompanySettings {
+  id        String  @id @default(cuid())
+  companyId String  @unique
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
+  // ERP Integration
+  erpType  String  @default("sgp") // sgp | manual | webhook
+  sgpBaseUrl  String?
+  sgpToken    String?
+  sgpApp      String?
+
+  // Evolution API (WhatsApp)
+  evolutionBaseUrl  String?
+  evolutionApiKey   String?
+  evolutionInstance String?
+
+  // Informações da empresa exibidas nas mensagens
+  companyWhatsapp String?
+  companyHours    String?
+
+  // Configurações de disparo
+  testMode        Boolean @default(true)
+  sendWindowStart String  @default("08:00")
+  sendWindowEnd   String  @default("20:00")
+  sendDays        String  @default("1,2,3,4,5,6")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("company_settings")
+}
+
+// ─── Clientes ────────────────────────────────────────────────────────────────
+
 model Client {
-  id         String   @id
+  id         String  @id @default(cuid())
+  externalId String? // ID no sistema externo (SGP, etc.)
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+
   name       String
   cpfCnpj    String?
   email      String?
@@ -26,36 +88,51 @@ model Client {
   invoices    Invoice[]
   messageLogs MessageLog[]
 
+  @@unique([companyId, externalId])
+  @@index([companyId])
   @@map("clients")
 }
 
+// ─── Faturas ─────────────────────────────────────────────────────────────────
+
 model Invoice {
-  id         String   @id
+  id         String  @id @default(cuid())
+  externalId String? // ID no sistema externo (SGP, etc.)
+  companyId  String
+  company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
   clientId   String
-  client     Client   @relation(fields: [clientId], references: [id])
-  dueDate    DateTime
-  amount     Float
-  status     String   @default("aberta")
-  boletoUrl  String?
-  pixCode    String?
-  sgpRaw     String?
-  syncedAt   DateTime @default(now())
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  client     Client  @relation(fields: [clientId], references: [id])
+
+  dueDate   DateTime
+  amount    Float
+  status    String   @default("aberta")
+  boletoUrl String?
+  pixCode   String?
+  sgpRaw    String?
+  syncedAt  DateTime @default(now())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   messageLogs MessageLog[]
 
+  @@unique([companyId, externalId])
   @@index([dueDate])
   @@index([clientId])
+  @@index([companyId])
   @@map("invoices")
 }
 
+// ─── Logs de mensagens ───────────────────────────────────────────────────────
+
 model MessageLog {
-  id             String   @id @default(cuid())
-  clientId       String
-  client         Client   @relation(fields: [clientId], references: [id])
-  invoiceId      String
-  invoice        Invoice  @relation(fields: [invoiceId], references: [id])
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId  String
+  client    Client  @relation(fields: [clientId], references: [id])
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
   stage          String
   whatsappTo     String
   messageBody    String
@@ -67,25 +144,38 @@ model MessageLog {
   sentAt         DateTime @default(now())
 
   @@unique([invoiceId, stage])
+  @@index([companyId])
   @@index([clientId])
   @@index([sentAt])
   @@index([stage, sentAt])
   @@map("message_logs")
 }
 
+// ─── Configurações extras por empresa ────────────────────────────────────────
+
 model Config {
-  key       String   @id
+  id        String  @id @default(cuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  key       String
   value     String
   updatedAt DateTime @updatedAt
 
+  @@unique([companyId, key])
   @@map("config")
 }
 
+// ─── Feriados por empresa ─────────────────────────────────────────────────────
+
 model Holiday {
-  date        String   @id
+  id          String  @id @default(cuid())
+  companyId   String
+  company     Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  date        String
   description String
   source      String   @default("manual")
   createdAt   DateTime @default(now())
 
+  @@unique([companyId, date])
   @@map("holidays")
 }

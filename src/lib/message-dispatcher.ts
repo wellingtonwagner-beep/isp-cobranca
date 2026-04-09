@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { evolution } from './evolution'
+import { EvolutionClient } from './evolution'
 import { renderTemplate } from './templates'
 import { formatDateBR, formatCurrency } from './utils'
 import type { Stage, MessageStatus } from '@/types'
@@ -15,16 +15,15 @@ export async function dispatchMessage(
   client: Client,
   invoice: Invoice,
   stage: Stage,
-  testMode: boolean
+  testMode: boolean,
+  evolutionClient: EvolutionClient | null,
+  companySettings?: { companyWhatsapp?: string | null; companyHours?: string | null }
 ): Promise<DispatchResult> {
-  // 1. Anti-duplicata: verifica se já foi enviado
+  // 1. Anti-duplicata
   const existing = await prisma.messageLog.findUnique({
     where: { invoiceId_stage: { invoiceId: invoice.id, stage } },
   })
-
-  if (existing) {
-    return { status: 'blocked_duplicate' }
-  }
+  if (existing) return { status: 'blocked_duplicate' }
 
   // 2. Verifica número de WhatsApp
   if (!client.whatsapp) {
@@ -34,30 +33,37 @@ export async function dispatchMessage(
 
   // 3. Renderiza template
   const vars = {
-    nome: client.name.split(' ')[0], // Primeiro nome
+    nome: client.name.split(' ')[0],
     data_vencimento: formatDateBR(invoice.dueDate),
     valor: formatCurrency(invoice.amount),
     link_boleto: invoice.boletoUrl || undefined,
     codigo_pix: invoice.pixCode || undefined,
+    company_whatsapp: companySettings?.companyWhatsapp || process.env.NEXT_PUBLIC_COMPANY_WHATSAPP || '',
+    company_hours: companySettings?.companyHours || 'Seg-Sex 8h às 18h',
   }
 
   const { mainMessage, pixMessage } = renderTemplate(stage, vars)
 
-  // 4. Modo teste — não envia, apenas loga
+  // 4. Modo teste
   if (testMode) {
     await logMessage(client, invoice, stage, mainMessage, pixMessage, undefined, 'blocked_test', testMode)
     return { status: 'blocked_test' }
   }
 
-  // 5. Envia via Evolution API
+  // 5. Verifica se evolution está configurado
+  if (!evolutionClient) {
+    await logMessage(client, invoice, stage, mainMessage, pixMessage, undefined, 'failed', testMode, 'Evolution API não configurada')
+    return { status: 'failed', error: 'Evolution API não configurada' }
+  }
+
+  // 6. Envia via Evolution API
   try {
-    const res = await evolution.sendText(client.whatsapp, mainMessage)
+    const res = await evolutionClient.sendText(client.whatsapp, mainMessage)
     let msgIds = res.key?.id || ''
 
-    // Envia PIX como segunda mensagem se disponível
     if (pixMessage && invoice.pixCode) {
       await new Promise((r) => setTimeout(r, 1500))
-      const pixRes = await evolution.sendText(client.whatsapp, invoice.pixCode)
+      const pixRes = await evolutionClient.sendText(client.whatsapp, invoice.pixCode)
       if (pixRes.key?.id) msgIds += `,${pixRes.key.id}`
     }
 
@@ -84,6 +90,7 @@ async function logMessage(
   try {
     await prisma.messageLog.create({
       data: {
+        companyId: client.companyId,
         clientId: client.id,
         invoiceId: invoice.id,
         stage,
@@ -97,7 +104,6 @@ async function logMessage(
       },
     })
   } catch (err: unknown) {
-    // Pode ser duplicata por race condition — ignorar silenciosamente
     const error = err as { code?: string }
     if (error?.code !== 'P2002') {
       console.error('[MessageDispatcher] Erro ao salvar log:', err)

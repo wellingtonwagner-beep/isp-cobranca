@@ -1,7 +1,6 @@
 import { prisma } from './prisma'
 import { todayStrBRT } from './utils'
 
-// Feriados nacionais fixos (mês/dia)
 const FIXED_HOLIDAYS: { month: number; day: number; description: string }[] = [
   { month: 1, day: 1, description: 'Confraternização Universal' },
   { month: 4, day: 21, description: 'Tiradentes' },
@@ -13,14 +12,14 @@ const FIXED_HOLIDAYS: { month: number; day: number; description: string }[] = [
   { month: 12, day: 25, description: 'Natal' },
 ]
 
-export async function isTodayHoliday(): Promise<boolean> {
+export async function isTodayHoliday(companyId: string): Promise<boolean> {
   const today = todayStrBRT()
 
-  // Verifica no banco primeiro
-  const dbHoliday = await prisma.holiday.findUnique({ where: { date: today } })
+  const dbHoliday = await prisma.holiday.findUnique({
+    where: { companyId_date: { companyId, date: today } },
+  })
   if (dbHoliday) return true
 
-  // Verifica feriados fixos nacionais
   const [, monthStr, dayStr] = today.split('-')
   const month = parseInt(monthStr)
   const day = parseInt(dayStr)
@@ -28,13 +27,13 @@ export async function isTodayHoliday(): Promise<boolean> {
   return FIXED_HOLIDAYS.some((h) => h.month === month && h.day === day)
 }
 
-export async function seedFixedHolidays(year: number): Promise<void> {
+export async function seedFixedHolidays(companyId: string, year: number): Promise<void> {
   for (const h of FIXED_HOLIDAYS) {
     const dateStr = `${year}-${String(h.month).padStart(2, '0')}-${String(h.day).padStart(2, '0')}`
     await prisma.holiday.upsert({
-      where: { date: dateStr },
+      where: { companyId_date: { companyId, date: dateStr } },
       update: {},
-      create: { date: dateStr, description: h.description, source: 'fixed' },
+      create: { companyId, date: dateStr, description: h.description, source: 'fixed' },
     })
   }
 }

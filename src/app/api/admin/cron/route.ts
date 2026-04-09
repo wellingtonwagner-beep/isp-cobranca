@@ -1,23 +1,18 @@
 /**
  * POST /api/admin/cron
- *
- * Endpoint interno para disparar o billing engine a partir da UI.
- * Não exige CRON_SECRET do lado do cliente — o secret é lido do ambiente aqui.
+ * Dispara o billing engine para a empresa autenticada.
  */
 import { NextResponse } from 'next/server'
+import { getCompanyId } from '@/lib/session'
+import { runDailyCheck } from '@/lib/billing-engine'
 
 export async function POST() {
+  const companyId = await getCompanyId()
+  if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
-    const port   = process.env.PORT || 3000
-    const secret = process.env.CRON_SECRET || ''
-
-    const res  = await fetch(`http://localhost:${port}/api/cron`, {
-      method:  'POST',
-      headers: { 'x-cron-secret': secret },
-    })
-
-    const data = await res.json()
-    return NextResponse.json(data, { status: res.status })
+    const result = await runDailyCheck(companyId)
+    return NextResponse.json({ ok: true, result })
   } catch (err) {
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }

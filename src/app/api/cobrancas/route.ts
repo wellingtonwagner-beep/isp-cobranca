@@ -1,18 +1,24 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getCompanyId } from '@/lib/session'
 import { todayStrBRT, addDaysBRT, dateToBRTString, parseDate } from '@/lib/utils'
 import { STAGES } from '@/lib/templates'
 
 export async function GET() {
+  const companyId = await getCompanyId()
+  if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   try {
     const today = todayStrBRT()
     const todayStart = new Date(`${today}T00:00:00.000Z`)
     const todayEnd = new Date(`${today}T23:59:59.999Z`)
 
-    // Logs de hoje
     const todayLogs = await prisma.messageLog.findMany({
-      where: { sentAt: { gte: todayStart, lte: todayEnd } },
-      include: { client: { select: { name: true, whatsapp: true } }, invoice: { select: { amount: true, dueDate: true } } },
+      where: { companyId, sentAt: { gte: todayStart, lte: todayEnd } },
+      include: {
+        client: { select: { name: true, whatsapp: true } },
+        invoice: { select: { amount: true, dueDate: true } },
+      },
       orderBy: { sentAt: 'desc' },
     })
 
@@ -20,7 +26,6 @@ export async function GET() {
     const blocked = todayLogs.filter((l) => l.status === 'blocked_test').length
     const failed = todayLogs.filter((l) => l.status === 'failed').length
 
-    // Calcula previstos para hoje (faturas que serão processadas em algum estágio)
     let planned = 0
     const stagePreview: { stage: string; label: string; count: number; targetDate: string }[] = []
 
@@ -30,6 +35,7 @@ export async function GET() {
 
       const count = await prisma.invoice.count({
         where: {
+          companyId,
           dueDate: {
             gte: new Date(`${targetDateStr}T00:00:00.000Z`),
             lt: new Date(`${targetDateStr}T23:59:59.999Z`),
@@ -41,19 +47,13 @@ export async function GET() {
 
       if (count > 0) {
         planned += count
-        stagePreview.push({
-          stage: stageConfig.stage,
-          label: stageConfig.label,
-          count,
-          targetDate: targetDateStr,
-        })
+        stagePreview.push({ stage: stageConfig.stage, label: stageConfig.label, count, targetDate: targetDateStr })
       }
     }
 
-    // Últimos 7 dias de histórico
     const sevenDaysAgo = new Date(todayStart.getTime() - 7 * 24 * 60 * 60 * 1000)
     const recentLogs = await prisma.messageLog.findMany({
-      where: { sentAt: { gte: sevenDaysAgo } },
+      where: { companyId, sentAt: { gte: sevenDaysAgo } },
       include: {
         client: { select: { name: true, whatsapp: true } },
         invoice: { select: { amount: true, dueDate: true } },

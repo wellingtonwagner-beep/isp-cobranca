@@ -1,5 +1,11 @@
 import axios, { AxiosInstance } from 'axios'
 
+interface EvolutionConfig {
+  baseUrl: string
+  apiKey: string
+  instance: string
+}
+
 interface SendTextResponse {
   key: { id: string }
   status: string
@@ -7,25 +13,22 @@ interface SendTextResponse {
 
 export class EvolutionClient {
   private http: AxiosInstance
+  private instance: string
 
-  constructor() {
+  constructor(config: EvolutionConfig) {
+    this.instance = config.instance
     this.http = axios.create({
-      baseURL: process.env.EVOLUTION_BASE_URL || 'http://localhost:8080',
+      baseURL: config.baseUrl,
       timeout: 15000,
       headers: {
-        'apikey': process.env.EVOLUTION_API_KEY || '',
+        'apikey': config.apiKey,
         'Content-Type': 'application/json',
       },
     })
   }
 
-  private getInstance(): string {
-    return process.env.EVOLUTION_INSTANCE || 'default'
-  }
-
   async sendText(phone: string, text: string): Promise<SendTextResponse> {
-    const instance = this.getInstance()
-    const res = await this.http.post<SendTextResponse>(`/message/sendText/${instance}`, {
+    const res = await this.http.post<SendTextResponse>(`/message/sendText/${this.instance}`, {
       number: phone,
       text,
       delay: 1200,
@@ -40,8 +43,7 @@ export class EvolutionClient {
 
   async checkConnection(): Promise<boolean> {
     try {
-      const instance = this.getInstance()
-      const res = await this.http.get(`/instance/connectionState/${instance}`)
+      const res = await this.http.get(`/instance/connectionState/${this.instance}`)
       return res.data?.instance?.state === 'open'
     } catch {
       return false
@@ -49,4 +51,27 @@ export class EvolutionClient {
   }
 }
 
-export const evolution = new EvolutionClient()
+/**
+ * Cria um EvolutionClient a partir das configurações de uma empresa.
+ * Retorna null se as credenciais não estiverem configuradas.
+ */
+export function createEvolutionClient(settings: {
+  evolutionBaseUrl?: string | null
+  evolutionApiKey?: string | null
+  evolutionInstance?: string | null
+}): EvolutionClient | null {
+  const baseUrl = settings.evolutionBaseUrl || process.env.EVOLUTION_BASE_URL
+  const apiKey = settings.evolutionApiKey || process.env.EVOLUTION_API_KEY
+  const instance = settings.evolutionInstance || process.env.EVOLUTION_INSTANCE
+
+  if (!baseUrl || !apiKey || !instance) return null
+
+  return new EvolutionClient({ baseUrl, apiKey, instance })
+}
+
+// Singleton de fallback para uso sem multi-tenant (compatibilidade)
+export const evolution = new EvolutionClient({
+  baseUrl: process.env.EVOLUTION_BASE_URL || 'http://localhost:8080',
+  apiKey: process.env.EVOLUTION_API_KEY || '',
+  instance: process.env.EVOLUTION_INSTANCE || 'default',
+})

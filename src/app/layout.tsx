@@ -1,6 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
-import Sidebar from '@/components/layout/Sidebar'
+import { Providers } from './providers'
 
 export const metadata: Metadata = {
   title: 'ISP Cobrança',
@@ -11,10 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR">
       <body className="bg-[#f5f3ff] antialiased">
-        <Sidebar />
-        <main className="ml-48 min-h-screen">
-          <div className="p-6 max-w-7xl">{children}</div>
-        </main>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

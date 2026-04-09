@@ -1,126 +1,86 @@
 /**
- * POST /api/sync/clientes
- *
- * Sincroniza clientes (e seus títulos em aberto) do SGP → banco local.
- *
- * Fluxo:
- *   1. Busca todos os clientes com faturas abertas via URA (/api/ura/clientes/)
- *   2. Para clientes SEM whatsapp cadastrado, consulta /api/ura/consultacliente/
- *      para obter telefone (celular preferido, fixo como fallback)
- *   3. Upsert de clientes + faturas em uma só passagem
+ * POST /api/sync/clientes — chamado pelo cron-server (CRON_SECRET required)
+ * Sincroniza clientes de TODAS as empresas ativas.
  */
-
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { sgp } from '@/lib/sgp'
+import { createSgpClient } from '@/lib/sgp'
 import { normalizePhone } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
-  const secret     = req.headers.get('x-cron-secret')
-  const isInternal = secret === process.env.CRON_SECRET
-
-  if (!isInternal && process.env.NODE_ENV === 'production') {
+  const secret = req.headers.get('x-cron-secret')
+  if (secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  try {
-    const clientes = await sgp.getClientesComFaturaAberta()
+  const companies = await prisma.company.findMany({
+    where: { active: true },
+    include: { settings: true },
+  })
 
-    let clientesSynced = 0
-    let faturasSynced  = 0
-    let phonesFound    = 0
-    let errors         = 0
+  const report: Record<string, unknown> = {}
 
-    for (const c of clientes) {
-      try {
-        const id = c.cpfcnpj.replace(/\D/g, '')
+  for (const company of companies) {
+    const sgpClient = createSgpClient(company.settings || {})
+    if (!sgpClient) { report[company.id] = { skipped: 'SGP não configurado' }; continue }
 
-        // Verifica se já existe no banco e se já tem whatsapp
-        const existente = await prisma.client.findUnique({
-          where: { id },
-          select: { whatsapp: true },
-        })
+    let clientesSynced = 0, faturasSynced = 0, phonesFound = 0, errors = 0
 
-        let whatsapp = existente?.whatsapp ?? null
+    try {
+      const clientes = await sgpClient.getClientesComFaturaAberta()
 
-        // Busca telefone no SGP apenas se não tiver cadastrado localmente
-        if (!whatsapp) {
-          const detalhes = await sgp.getClienteDetalhes(c.cpfcnpj)
-          if (detalhes) {
-            const raw = sgp.pickBestPhone(detalhes)
-            whatsapp  = normalizePhone(raw ?? '') ?? null
-            if (whatsapp) phonesFound++
+      for (const c of clientes) {
+        try {
+          const externalId = c.cpfcnpj.replace(/\D/g, '')
+
+          const existente = await prisma.client.findUnique({
+            where: { companyId_externalId: { companyId: company.id, externalId } },
+            select: { whatsapp: true },
+          })
+
+          let whatsapp = existente?.whatsapp ?? null
+
+          if (!whatsapp) {
+            const detalhes = await sgpClient.getClienteDetalhes(c.cpfcnpj)
+            if (detalhes) {
+              const raw = sgpClient.pickBestPhone(detalhes)
+              whatsapp = normalizePhone(raw ?? '') ?? null
+              if (whatsapp) phonesFound++
+            }
           }
-        }
 
-        await prisma.client.upsert({
-          where: { id },
-          update: {
-            name:     c.nome,
-            cpfCnpj:  c.cpfcnpj,
-            city:     c.endereco?.cidade || null,
-            whatsapp: whatsapp ?? undefined, // não sobrescreve com null se já tinha
-            sgpRaw:   JSON.stringify(c),
-            syncedAt: new Date(),
-          },
-          create: {
-            id,
-            name:    c.nome,
-            cpfCnpj: c.cpfcnpj,
-            city:    c.endereco?.cidade || null,
-            whatsapp,
-            sgpRaw:  JSON.stringify(c),
-          },
-        })
-        clientesSynced++
-
-        // Upsert das faturas em aberto
-        for (const t of c.titulos ?? []) {
-          if (t.status !== 'aberto') continue
-
-          const faturaId = String(t.id)
-          const dueDate  = new Date(`${t.dataVencimento}T03:00:00.000Z`)
-          const amount   = t.valorCorrigido ?? t.valor
-
-          await prisma.invoice.upsert({
-            where: { id: faturaId },
+          const client = await prisma.client.upsert({
+            where: { companyId_externalId: { companyId: company.id, externalId } },
             update: {
-              dueDate,
-              amount,
-              status:    'aberta',
-              boletoUrl: t.link     || null, // link já é URL completa no URA
-              pixCode:   t.codigoPix || null,
-              sgpRaw:    JSON.stringify(t),
-              syncedAt:  new Date(),
+              name: c.nome, cpfCnpj: c.cpfcnpj, city: c.endereco?.cidade || null,
+              whatsapp: whatsapp ?? undefined, sgpRaw: JSON.stringify(c), syncedAt: new Date(),
             },
             create: {
-              id:        faturaId,
-              clientId:  id,
-              dueDate,
-              amount,
-              status:    'aberta',
-              boletoUrl: t.link     || null,
-              pixCode:   t.codigoPix || null,
-              sgpRaw:    JSON.stringify(t),
+              companyId: company.id, externalId, name: c.nome, cpfCnpj: c.cpfcnpj,
+              city: c.endereco?.cidade || null, whatsapp, sgpRaw: JSON.stringify(c),
             },
           })
-          faturasSynced++
-        }
-      } catch (err) {
-        console.error(`[sync/clientes] Erro cliente ${c.cpfcnpj}:`, err)
-        errors++
-      }
-    }
+          clientesSynced++
 
-    return NextResponse.json({
-      ok: true,
-      clientesSynced,
-      faturasSynced,
-      phonesFound,
-      errors,
-    })
-  } catch (err) {
-    console.error('[/api/sync/clientes]', err)
-    return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
+          for (const t of c.titulos ?? []) {
+            if (t.status !== 'aberto') continue
+            const invoiceExternalId = String(t.id)
+            const dueDate = new Date(`${t.dataVencimento}T03:00:00.000Z`)
+            const amount = t.valorCorrigido ?? t.valor
+
+            await prisma.invoice.upsert({
+              where: { companyId_externalId: { companyId: company.id, externalId: invoiceExternalId } },
+              update: { dueDate, amount, status: 'aberta', boletoUrl: t.link || null, pixCode: t.codigoPix || null, sgpRaw: JSON.stringify(t), syncedAt: new Date() },
+              create: { companyId: company.id, externalId: invoiceExternalId, clientId: client.id, dueDate, amount, status: 'aberta', boletoUrl: t.link || null, pixCode: t.codigoPix || null, sgpRaw: JSON.stringify(t) },
+            })
+            faturasSynced++
+          }
+        } catch (err) { errors++ ; console.error(`[sync/clientes][${company.id}] Erro:`, err) }
+      }
+    } catch (err) { errors++ ; console.error(`[sync/clientes][${company.id}] Falha geral:`, err) }
+
+    report[company.id] = { clientesSynced, faturasSynced, phonesFound, errors }
   }
+
+  return NextResponse.json({ ok: true, report })
 }

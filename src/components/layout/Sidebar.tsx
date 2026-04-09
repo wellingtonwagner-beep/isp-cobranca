@@ -1,7 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 'use client'
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { signOut, useSession } from 'next-auth/react'
 import {
   LayoutDashboard,
   Users,
@@ -9,6 +11,7 @@ import {
   CreditCard,
   AlertTriangle,
   GitBranch,
+  Settings,
   LogOut,
 } from 'lucide-react'
 import { clsx } from 'clsx'
@@ -20,18 +23,33 @@ const navItems = [
   { href: '/cobrancas', label: 'Cobranças', icon: CreditCard },
   { href: '/inadimplencia', label: 'Inadimplência', icon: AlertTriangle },
   { href: '/workflow', label: 'Workflow', icon: GitBranch },
+  { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
+  const { data: session } = useSession()
 
   return (
-    <aside className="fixed left-0 top-0 h-full w-48 bg-[#1e1b4b] flex flex-col z-50">
-      {/* Logo */}
-      <div className="flex items-center justify-center h-16 border-b border-purple-800/40 px-4">
-        <div className="text-white font-bold text-lg tracking-wide">
-          <span className="text-purple-300">ISP</span>
-          <span className="text-white ml-1">Cobrança</span>
+    <aside className="fixed left-0 top-0 h-full w-52 bg-[#1e1b4b] flex flex-col z-50">
+      {/* Logo / empresa */}
+      <div className="flex items-center gap-3 h-16 border-b border-purple-800/40 px-4">
+        {session?.user?.logo ? (
+          <img
+            src={session.user.logo}
+            alt="Logo"
+            className="w-8 h-8 rounded-lg object-contain bg-white/10 p-0.5"
+          />
+        ) : (
+          <div className="w-8 h-8 rounded-lg bg-purple-700 flex items-center justify-center text-white font-bold text-sm">
+            {session?.user?.name?.charAt(0) || 'I'}
+          </div>
+        )}
+        <div className="min-w-0">
+          <p className="text-white font-bold text-sm leading-tight truncate">
+            {session?.user?.name || 'ISP Cobrança'}
+          </p>
+          <p className="text-purple-400 text-xs truncate">Sistema de Cobranças</p>
         </div>
       </div>
 
@@ -57,22 +75,17 @@ export default function Sidebar() {
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-purple-800/40">
-        <TestModeBadge />
-        <button className="sidebar-item text-purple-300 w-full mt-1">
+        <div className="px-3 py-1.5 mb-1">
+          <p className="text-purple-400 text-xs truncate">{session?.user?.email}</p>
+        </div>
+        <button
+          onClick={() => signOut({ callbackUrl: '/login' })}
+          className="sidebar-item text-purple-300 hover:text-white w-full"
+        >
           <LogOut size={16} />
           <span>Sair</span>
         </button>
       </div>
     </aside>
-  )
-}
-
-function TestModeBadge() {
-  // Simples — em prod leria da API /api/config
-  return (
-    <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-green-400 font-medium">
-      <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
-      MODO TESTE
-    </div>
   )
 }
