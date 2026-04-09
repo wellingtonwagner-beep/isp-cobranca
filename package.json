@@ -7,7 +7,7 @@
     "dev:web": "next dev",
     "dev:cron": "tsx src/server/cron-server.ts",
     "build": "next build",
-    "start": "concurrently \"next start\" \"node dist/server/cron-server.js\"",
+    "start": "concurrently \"next start\" \"tsx src/server/cron-server.ts\"",
     "lint": "next lint",
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
