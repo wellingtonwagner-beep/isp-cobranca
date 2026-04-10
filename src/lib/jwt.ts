@@ -8,7 +8,7 @@ export interface SessionPayload {
   companyId: string
   email: string
   name: string
-  logo?: string | null
+  // logo excluída do JWT — buscada via /api/auth/me para não inflar o cookie
 }
 
 export async function signToken(payload: SessionPayload): Promise<string> {

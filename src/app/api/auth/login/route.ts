@@ -24,11 +24,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'E-mail ou senha inválidos.' }, { status: 401 })
     }
 
+    // Logo excluída do JWT para não inflar o cookie (HTTP/2 HPACK limit)
     const token = await signToken({
       companyId: company.id,
       email: company.email,
       name: company.name,
-      logo: company.logo,
     })
 
     const res = NextResponse.json({ ok: true, name: company.name })
