@@ -27,9 +27,9 @@ export async function POST(req: NextRequest) {
     }
 
     if (action === 'clientes') {
-      return syncClientes(companyId, sgpClient)
+      return await syncClientes(companyId, sgpClient)
     } else {
-      return syncFaturas(companyId, sgpClient)
+      return await syncFaturas(companyId, sgpClient)
     }
   } catch (err) {
     console.error('[POST /api/admin/sync]', err)

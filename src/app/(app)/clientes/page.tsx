@@ -64,7 +64,7 @@ export default function ClientesPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'clientes' }),
       })
-      const data = await res.json()
+      const data = await res.json().catch(() => ({}))
       if (!res.ok) {
         setSyncMsg({ ok: false, text: data.error || `Erro ${res.status}` })
       } else {
