@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
@@ -17,25 +16,30 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
 
-    const res = await signIn('credentials', {
-      email,
-      password,
-      redirect: false,
-    })
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
 
-    setLoading(false)
+      const data = await res.json()
 
-    if (res?.error) {
-      setError('E-mail ou senha inválidos.')
-    } else {
-      router.push('/')
-      router.refresh()
+      if (!res.ok) {
+        setError(data.error || 'E-mail ou senha inválidos.')
+      } else {
+        router.push('/')
+        router.refresh()
+      }
+    } catch {
+      setError('Erro de conexão. Tente novamente.')
+    } finally {
+      setLoading(false)
     }
   }
 
   return (
     <div className="w-full max-w-sm">
-      {/* Logo */}
       <div className="text-center mb-8">
         <div className="text-3xl font-bold text-white tracking-wide">
           <span className="text-purple-300">ISP</span>

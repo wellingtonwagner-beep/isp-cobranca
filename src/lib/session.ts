@@ -1,21 +1,10 @@
-/**
- * Helper para obter a sessão autenticada em Server Components e API routes.
- * Retorna null se não autenticado.
- */
-import { getServerSession } from 'next-auth'
-import { authOptions } from './auth'
+import { getSessionFromCookie } from './jwt'
 
 export async function getSession() {
-  return getServerSession(authOptions)
-}
-
-export async function requireSession() {
-  const session = await getSession()
-  if (!session?.user?.companyId) return null
-  return session
+  return getSessionFromCookie()
 }
 
 export async function getCompanyId(): Promise<string | null> {
-  const session = await requireSession()
-  return session?.user?.companyId ?? null
+  const session = await getSessionFromCookie()
+  return session?.companyId ?? null
 }
