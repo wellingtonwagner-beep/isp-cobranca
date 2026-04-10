@@ -68,8 +68,9 @@ export default function ClientesPage() {
       if (!res.ok) {
         setSyncMsg({ ok: false, text: data.error || `Erro ${res.status}` })
       } else {
-        setSyncMsg({ ok: true, text: `Sync concluído: ${data.clientesSynced} clientes, ${data.faturasSynced} faturas` })
-        await load()
+        setSyncMsg({ ok: true, text: data.message || 'Sync iniciado.' })
+        // Recarrega após 90s para dar tempo ao background sync
+        setTimeout(() => load(), 90_000)
       }
     } catch (e) {
       setSyncMsg({ ok: false, text: String(e) })
