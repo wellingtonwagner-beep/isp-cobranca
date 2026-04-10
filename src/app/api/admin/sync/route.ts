@@ -51,14 +51,18 @@ export async function POST(req: NextRequest) {
 
 async function syncClientes(companyId: string, sgpClient: NonNullable<ReturnType<typeof createSgpClient>>) {
   const clientes = await sgpClient.getClientesComFaturaAberta()
+  console.log(`[sync/clientes] ${clientes.length} clientes para sincronizar`)
 
   let clientesSynced = 0
   let faturasSynced = 0
   let phonesFound = 0
   let errors = 0
 
-  for (const c of clientes) {
-    try {
+  // Processa em lotes de 10 paralelos para reduzir de ~13min para ~1-2min
+  const CONCURRENCY = 10
+  for (let i = 0; i < clientes.length; i += CONCURRENCY) {
+    const lote = clientes.slice(i, i + CONCURRENCY)
+    const resultados = await Promise.allSettled(lote.map(async (c) => {
       const externalId = c.cpfcnpj.replace(/\D/g, '')
 
       const existente = await prisma.client.findUnique({
@@ -127,12 +131,23 @@ async function syncClientes(companyId: string, sgpClient: NonNullable<ReturnType
         })
         faturasSynced++
       }
-    } catch (err) {
-      console.error(`[sync/clientes] Erro cliente ${c.cpfcnpj}:`, err)
-      errors++
+
+      return client
+    }))
+
+    for (const r of resultados) {
+      if (r.status === 'rejected') {
+        console.error(`[sync/clientes] Erro no lote ${i}:`, r.reason)
+        errors++
+      }
+    }
+
+    if (i % 50 === 0) {
+      console.log(`[sync/clientes] Progresso: ${Math.min(i + CONCURRENCY, clientes.length)}/${clientes.length}`)
     }
   }
 
+  console.log(`[sync/clientes] Concluído: ${clientesSynced} clientes, ${faturasSynced} faturas, ${phonesFound} phones, ${errors} erros`)
   return NextResponse.json({ ok: true, clientesSynced, faturasSynced, phonesFound, errors })
 }
 
