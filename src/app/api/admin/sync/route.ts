@@ -26,11 +26,23 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'SGP não configurado. Configure as credenciais em Configurações.' }, { status: 400 })
     }
 
+    // Roda em background para não bloquear a requisição HTTP
+    // (sync completo pode levar vários minutos com muitos clientes)
     if (action === 'clientes') {
-      return await syncClientes(companyId, sgpClient)
+      syncClientes(companyId, sgpClient).catch(err =>
+        console.error('[sync/bg clientes]', err)
+      )
     } else {
-      return await syncFaturas(companyId, sgpClient)
+      syncFaturas(companyId, sgpClient).catch(err =>
+        console.error('[sync/bg faturas]', err)
+      )
     }
+
+    return NextResponse.json({
+      ok: true,
+      background: true,
+      message: `Sync de ${action} iniciado em background. Recarregue a página em 1-2 minutos.`,
+    })
   } catch (err) {
     console.error('[POST /api/admin/sync]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
