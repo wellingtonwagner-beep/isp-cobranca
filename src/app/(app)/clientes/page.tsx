@@ -35,6 +35,7 @@ export default function ClientesPage() {
   const [status, setStatus] = useState('')
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -56,13 +57,22 @@ export default function ClientesPage() {
 
   async function syncClients() {
     setSyncing(true)
+    setSyncMsg(null)
     try {
-      await fetch('/api/admin/sync', {
+      const res = await fetch('/api/admin/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'clientes' }),
       })
-      await load()
+      const data = await res.json()
+      if (!res.ok) {
+        setSyncMsg({ ok: false, text: data.error || `Erro ${res.status}` })
+      } else {
+        setSyncMsg({ ok: true, text: `Sync concluído: ${data.clientesSynced} clientes, ${data.faturasSynced} faturas` })
+        await load()
+      }
+    } catch (e) {
+      setSyncMsg({ ok: false, text: String(e) })
     } finally {
       setSyncing(false)
     }
@@ -79,6 +89,13 @@ export default function ClientesPage() {
           <RefreshCw size={14} /> Sincronizar SGP
         </Button>
       </div>
+
+      {/* Sync status */}
+      {syncMsg && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${syncMsg.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+          {syncMsg.text}
+        </div>
+      )}
 
       {/* Filtros */}
       <Card className="mb-5">

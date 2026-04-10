@@ -9,10 +9,10 @@ import { createSgpClient } from '@/lib/sgp'
 import { normalizePhone } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
-  const companyId = await getCompanyId()
-  if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
   try {
+    const companyId = await getCompanyId()
+    if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
     const { action } = await req.json() as { action: 'clientes' | 'faturas' }
 
     if (!['clientes', 'faturas'].includes(action)) {
@@ -32,6 +32,7 @@ export async function POST(req: NextRequest) {
       return syncFaturas(companyId, sgpClient)
     }
   } catch (err) {
+    console.error('[POST /api/admin/sync]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
