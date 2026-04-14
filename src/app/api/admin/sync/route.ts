@@ -6,7 +6,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCompanyId } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { createSgpClient } from '@/lib/sgp'
-import { normalizePhone } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   try {
@@ -70,14 +69,9 @@ async function syncClientes(companyId: string, sgpClient: NonNullable<ReturnType
         select: { whatsapp: true },
       })
 
-      // Reutiliza whatsapp já salvo; se não tiver, tenta extrair do bulk
-      // (evita 554 chamadas extras ao SGP — já temos os dados necessários)
-      let whatsapp = existente?.whatsapp ?? null
-
-      if (!whatsapp && c.contratos?.length) {
-        // O bulk não retorna telefones diretamente; marca para enriquecimento posterior
-        // O cron diário de faturas pode enriquecer numa segunda passagem
-      }
+      // Reutiliza whatsapp já salvo
+      // (evita 554 chamadas extras ao SGP — bulk não retorna telefones)
+      const whatsapp = existente?.whatsapp ?? null
 
       if (whatsapp) phonesFound++
 
