@@ -51,6 +51,9 @@ model CompanySettings {
   companyWhatsapp String?
   companyHours    String?
 
+  // Templates de mensagem personalizados (JSON: Record<Stage, {mainMessage, pixMessage?}>)
+  templatesJson   String?
+
   // Configurações de disparo
   testMode        Boolean @default(true)
   sendWindowStart String  @default("08:00")

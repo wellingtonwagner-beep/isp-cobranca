@@ -189,7 +189,32 @@ Evite a suspensão — regularize hoje.`,
   },
 ]
 
-export function renderTemplate(stage: Stage, vars: TemplateVars): { mainMessage: string; pixMessage?: string } {
+export type CustomTemplates = Partial<Record<Stage, { mainMessage: string; pixMessage?: string }>>
+
+/**
+ * Substitui variáveis no formato {nome}, {valor}, etc. em strings de template.
+ */
+function applyVars(text: string, vars: TemplateVars & Record<string, string | undefined>): string {
+  return text.replace(/\{(\w+)\}/g, (_, key) => vars[key] ?? `{${key}}`)
+}
+
+export function renderTemplate(
+  stage: Stage,
+  vars: TemplateVars,
+  custom?: CustomTemplates,
+): { mainMessage: string; pixMessage?: string } {
+  // Se a empresa tem template customizado para este estágio, usa ele
+  const customStage = custom?.[stage]
+  if (customStage?.mainMessage) {
+    return {
+      mainMessage: applyVars(customStage.mainMessage, vars as TemplateVars & Record<string, string | undefined>),
+      pixMessage: customStage.pixMessage
+        ? applyVars(customStage.pixMessage, vars as TemplateVars & Record<string, string | undefined>)
+        : undefined,
+    }
+  }
+
+  // Fallback para template padrão (funções JS)
   const template = TEMPLATES.find((t) => t.stage === stage)
   if (!template) throw new Error(`Template não encontrado para stage: ${stage}`)
 

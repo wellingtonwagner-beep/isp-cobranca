@@ -1,0 +1,42 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(/c/Program Files/GitHub CLI/gh.exe:*)",
+      "Bash(/c/Program Files/GitHub CLI/gh.exe auth:*)",
+      "Bash(git push:*)",
+      "Bash(curl -s -X POST https://k6haeq.easypanel.host/api/trpc/auth.login -H 'Content-Type: application/json' -d '{\"json\":{\"email\":\"wellington.wagner@gmail.com\",\"password\":\"We@057@#120583#\"}}')",
+      "Bash(curl -s -X GET https://k6haeq.easypanel.host/api/trpc/projects.list -H 'Authorization: Bearer cmnqpcerf000b07pheuyzehnx' -H 'Content-Type: application/json')",
+      "Bash(python3 -m json.tool)",
+      "Bash(curl -s 'https://k6haeq.easypanel.host/api/trpc/project.inspect?input=%7B%22json%22%3A%7B%22projectName%22%3A%22isp-cobranca%22%7D%7D' -H 'Authorization: Bearer cmnqpcerf000b07pheuyzehnx')",
+      "Bash(curl -s 'https://k6haeq.easypanel.host/api/trpc/project.list?input=%7B%22json%22%3A%7B%7D%7D' -H 'x-easypanel-token: 1a5ae6a3a2376e569198213adb56c2cbc69e6e57c305a03956893d47efd149ec')",
+      "Bash(curl -s -I \"https://k6haeq.easypanel.host/api/trpc/auth.me\")",
+      "Bash(curl -s 'https://k6haeq.easypanel.host/api/trpc/auth.me?input=%7B%22json%22%3A%7B%7D%7D' -H 'x-easypanel-token: 1a5ae6a3a2376e569198213adb56c2cbc69e6e57c305a03956893d47efd149ec')",
+      "WebFetch(domain:easypanel.io)",
+      "Bash(curl -s 'https://k6haeq.easypanel.host/api/trpc/auth.getSession?input=%7B%22json%22%3A%7B%7D%7D' -H 'Cookie: next-auth.session-token=cmnqpcerf000b07pheuyzehnx')",
+      "Bash(curl -s \"https://k6haeq.easypanel.host/assets/index-YiHw-lFa.js\")",
+      "Bash(curl -s https://k6haeq.easypanel.host/openapi.json -H 'Authorization: Bearer 1a5ae6a3a2376e569198213adb56c2cbc69e6e57c305a03956893d47efd149ec')",
+      "WebFetch(domain:github.com)",
+      "Bash(curl -s -X POST 'https://k6haeq.easypanel.host/api/trpc/project.listProjects,service.listServices?batch=1' -H 'Authorization: Bearer 1a5ae6a3a2376e569198213adb56c2cbc69e6e57c305a03956893d47efd149ec' -H 'Content-Type: application/json' -d '{\"0\":{\"json\":{}},\"1\":{\"json\":{}}}')",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git tag:*)",
+      "Bash(/c/Program Files/GitHub CLI/gh.exe repo:*)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' https://wcp.sgp.net.br/api/v1/integracao/cliente/todos -H 'Authorization: Bearer 54f2fc58-784b-4d77-8bcd-8e3c8bbc9ef5')",
+      "Bash(curl -s 'https://wcp.sgp.net.br/api/v1/integracao/cliente/todos?itens_por_pagina=1&pagina=1' -H 'Authorization: Bearer 54f2fc58-784b-4d77-8bcd-8e3c8bbc9ef5')",
+      "WebFetch(domain:documenter.getpostman.com)",
+      "Bash(curl -s -o /dev/null -w '%{http_code}\\\\n' https://wcp.sgp.net.br/cloud/api/v1/cliente/todos -H 'Authorization: Bearer 54f2fc58-784b-4d77-8bcd-8e3c8bbc9ef5')",
+      "Bash(curl -s -o /dev/null -w \"%{http_code}\\\\n\" \"https://wcp.sgp.net.br/api/integracao/clientes?token=54f2fc58-784b-4d77-8bcd-8e3c8bbc9ef5\")",
+      "Bash(curl -s -L -I \"https://wcp.sgp.net.br/\")",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' -X GET 'https://wcp.sgp.net.br__TRACKED_VAR__?token=5b91f02d-0a99-4333-a297-f5dba0d45d18&app=isp-cobranca' -H 'Content-Type: application/json')",
+      "Bash(curl -s -X POST https://wcp.sgp.net.br__TRACKED_VAR__ -H 'Content-Type: application/json' -d '{\"token\":\"5b91f02d-0a99-4333-a297-f5dba0d45d18\",\"app\":\"isp-cobranca\"}')",
+      "Bash(curl -s https://wcp.sgp.net.br/robots.txt)",
+      "Bash(curl -s -X POST https://api.sgp.net.br/v1/cliente/todos -H 'Content-Type: application/json' -d '{\"token\":\"5b91f02d-0a99-4333-a297-f5dba0d45d18\",\"app\":\"isp-cobranca\",\"itens_por_pagina\":1}')",
+      "Bash(curl -v -X POST https://api.sgp.net.br/v1/cliente/todos -H 'Content-Type: application/json' -d '{\"token\":\"5b91f02d-0a99-4333-a297-f5dba0d45d18\",\"app\":\"isp-cobranca\"}')",
+      "Bash(curl -s -o /dev/null -w '%{http_code}' -m 5 https://wcp.sgp.net.br__TRACKED_VAR__)",
+      "WebFetch(domain:bookstack.sgp.net.br)",
+      "Bash(curl -s \"https://www.getpostman.com/collections/6682240\")",
+      "Bash(curl -s \"https://api.getpostman.com/collections/6682240\")"
+    ]
+  }
+}

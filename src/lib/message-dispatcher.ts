@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 import { EvolutionClient } from './evolution'
-import { renderTemplate } from './templates'
+import { renderTemplate, CustomTemplates } from './templates'
 import { formatDateBR, formatCurrency } from './utils'
 import type { Stage, MessageStatus } from '@/types'
 import type { Client, Invoice } from '@prisma/client'
@@ -17,7 +17,8 @@ export async function dispatchMessage(
   stage: Stage,
   testMode: boolean,
   evolutionClient: EvolutionClient | null,
-  companySettings?: { companyWhatsapp?: string | null; companyHours?: string | null }
+  companySettings?: { companyWhatsapp?: string | null; companyHours?: string | null },
+  customTemplates?: CustomTemplates,
 ): Promise<DispatchResult> {
   // 1. Anti-duplicata
   const existing = await prisma.messageLog.findUnique({
@@ -42,7 +43,7 @@ export async function dispatchMessage(
     company_hours: companySettings?.companyHours || 'Seg-Sex 8h às 18h',
   }
 
-  const { mainMessage, pixMessage } = renderTemplate(stage, vars)
+  const { mainMessage, pixMessage } = renderTemplate(stage, vars, customTemplates)
 
   // 4. Modo teste
   if (testMode) {

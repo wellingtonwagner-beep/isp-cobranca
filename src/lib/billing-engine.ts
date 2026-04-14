@@ -5,7 +5,7 @@ import { isTodayHoliday } from './holidays'
 import { createSgpClient } from './sgp'
 import { createEvolutionClient } from './evolution'
 import { todayStrBRT, addDaysBRT, dateToBRTString, parseDate } from './utils'
-import { STAGES } from './templates'
+import { STAGES, CustomTemplates } from './templates'
 import type { BillingEngineResult, Stage } from '@/types'
 
 export async function runDailyCheck(companyId: string): Promise<BillingEngineResult> {
@@ -47,6 +47,15 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
   const companySettings = {
     companyWhatsapp: settings?.companyWhatsapp,
     companyHours: settings?.companyHours,
+  }
+
+  let customTemplates: CustomTemplates | undefined
+  if (settings?.templatesJson) {
+    try {
+      customTemplates = JSON.parse(settings.templatesJson) as CustomTemplates
+    } catch {
+      console.warn(`[BillingEngine][${companyId}] templatesJson inválido, usando padrão.`)
+    }
   }
 
   for (const stageConfig of STAGES) {
@@ -97,7 +106,8 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
         stageConfig.stage as Stage,
         testMode,
         evolutionClient,
-        companySettings
+        companySettings,
+        customTemplates,
       )
 
       if (res.status === 'sent' || res.status === 'blocked_test') {
