@@ -1,36 +1,44 @@
-import { prisma } from '@/lib/prisma'
-import { todayStrBRT } from '@/lib/utils'
+'use client'
+
+import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, FileText, AlertTriangle, MessageSquare, RefreshCw, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
 
-async function getDashboardData() {
-  try {
-    const today = todayStrBRT()
-    const todayStart = new Date(`${today}T00:00:00.000Z`)
-    const todayEnd = new Date(`${today}T23:59:59.999Z`)
-    const monthStart = new Date(`${today.slice(0, 7)}-01T00:00:00.000Z`)
-
-    const [totalClients, activeClients, openInvoices, overdueInvoices, todayLogs, monthLogs] =
-      await Promise.all([
-        prisma.client.count(),
-        prisma.client.count({ where: { status: 'ativo' } }),
-        prisma.invoice.count({ where: { status: 'aberta' } }),
-        prisma.invoice.count({
-          where: { status: { in: ['aberta', 'vencida'] }, dueDate: { lt: todayStart } },
-        }),
-        prisma.messageLog.count({ where: { sentAt: { gte: todayStart, lte: todayEnd } } }),
-        prisma.messageLog.count({ where: { sentAt: { gte: monthStart } } }),
-      ])
-
-    return { totalClients, activeClients, openInvoices, overdueInvoices, todayLogs, monthLogs }
-  } catch {
-    return { totalClients: 0, activeClients: 0, openInvoices: 0, overdueInvoices: 0, todayLogs: 0, monthLogs: 0 }
-  }
+interface DashboardData {
+  totalClients: number
+  activeClients: number
+  openInvoices: number
+  overdueInvoices: number
+  todayLogs: number
+  monthLogs: number
 }
 
-export default async function DashboardPage() {
-  const data = await getDashboardData()
+export default function DashboardPage() {
+  const [data, setData] = useState<DashboardData>({
+    totalClients: 0, activeClients: 0, openInvoices: 0,
+    overdueInvoices: 0, todayLogs: 0, monthLogs: 0,
+  })
+  const [syncMsg, setSyncMsg] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    const res = await fetch('/api/dashboard').catch(() => null)
+    if (res?.ok) setData(await res.json())
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function handleSync(action: string) {
+    setSyncMsg(null)
+    const res = await fetch('/api/admin/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action }),
+    })
+    const d = await res.json().catch(() => ({}))
+    setSyncMsg(d.message || d.error || (res.ok ? 'Sync iniciado.' : `Erro ${res.status}`))
+    if (res.ok) setTimeout(() => load(), 90_000)
+  }
 
   const metrics = [
     {
@@ -106,10 +114,23 @@ export default async function DashboardPage() {
               <RefreshCw className="text-purple-600 w-4 h-4" />
               <h3 className="font-semibold text-gray-800 text-sm">Sincronização SGP</h3>
             </div>
-            <p className="text-xs text-gray-500 mb-4">Sincronize clientes e faturas do SGP manualmente.</p>
+            <p className="text-xs text-gray-500 mb-3">Sincronize clientes e faturas do SGP manualmente.</p>
+            {syncMsg && (
+              <p className="text-xs text-purple-700 bg-purple-50 rounded px-2 py-1 mb-3">{syncMsg}</p>
+            )}
             <div className="flex gap-2">
-              <SyncButton action="clientes" label="Clientes" />
-              <SyncButton action="faturas" label="Faturas" />
+              <button
+                onClick={() => handleSync('clientes')}
+                className="text-xs bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-50 transition-colors"
+              >
+                Clientes
+              </button>
+              <button
+                onClick={() => handleSync('faturas')}
+                className="text-xs bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-50 transition-colors"
+              >
+                Faturas
+              </button>
             </div>
           </CardContent>
         </Card>
@@ -147,27 +168,5 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
-  )
-}
-
-function SyncButton({ action, label }: { action: string; label: string }) {
-  return (
-    <form
-      action={async () => {
-        'use server'
-        await fetch(`http://localhost:${process.env.PORT || 3000}/api/admin/sync`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action }),
-        }).catch(() => {})
-      }}
-    >
-      <button
-        type="submit"
-        className="text-xs bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-50 transition-colors"
-      >
-        {label}
-      </button>
-    </form>
   )
 }
