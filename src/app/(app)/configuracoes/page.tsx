@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Building2, Wifi, MessageSquare, Clock, CheckCircle } from 'lucide-react'
+import { Building2, Wifi, MessageSquare, Clock, CheckCircle, Loader2 } from 'lucide-react'
 
 type Tab = 'empresa' | 'erp' | 'whatsapp' | 'cobrancas'
 
@@ -42,6 +42,8 @@ export default function ConfiguracoesPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [testingWpp, setTestingWpp] = useState(false)
+  const [wppStatus, setWppStatus] = useState<{ ok: boolean; message: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/configuracoes')
@@ -86,6 +88,21 @@ export default function ConfiguracoesPage() {
       setForm((f) => ({ ...f, logo: b64 }))
     }
     reader.readAsDataURL(file)
+  }
+
+  async function testWhatsapp() {
+    setTestingWpp(true)
+    setWppStatus(null)
+    // Salva primeiro para garantir que as credenciais atuais estão no banco
+    await fetch('/api/configuracoes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    const res = await fetch('/api/admin/test-whatsapp')
+    const d = await res.json()
+    setWppStatus({ ok: d.ok, message: d.message || d.error || 'Erro desconhecido' })
+    setTestingWpp(false)
   }
 
   async function save() {
@@ -192,6 +209,25 @@ export default function ConfiguracoesPage() {
               <Field label="URL da Evolution API" name="evolutionBaseUrl" value={form.evolutionBaseUrl as string} onChange={handleChange} placeholder="https://evolution.suaempresa.com" />
               <Field label="API Key" name="evolutionApiKey" value={form.evolutionApiKey as string} onChange={handleChange} placeholder="Chave de API" />
               <Field label="Nome da instância" name="evolutionInstance" value={form.evolutionInstance as string} onChange={handleChange} placeholder="minha-instancia" />
+
+              {/* Teste de conexão */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={testWhatsapp}
+                  disabled={testingWpp}
+                  className="flex items-center gap-2 text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors"
+                >
+                  {testingWpp
+                    ? <><Loader2 size={14} className="animate-spin" /> Testando...</>
+                    : '📡 Testar Conexão WhatsApp'}
+                </button>
+                {wppStatus && (
+                  <span className={`text-sm font-medium ${wppStatus.ok ? 'text-green-700' : 'text-red-600'}`}>
+                    {wppStatus.ok ? '✅' : '❌'} {wppStatus.message}
+                  </span>
+                )}
+              </div>
+
               <hr className="border-gray-100" />
               <Field label="WhatsApp de atendimento" name="companyWhatsapp" value={form.companyWhatsapp as string} onChange={handleChange} placeholder="(37) 99999-9999" />
               <Field label="Horário de atendimento" name="companyHours" value={form.companyHours as string} onChange={handleChange} placeholder="Seg-Sex 8h às 18h | Sáb 8h às 12h" />
