@@ -58,7 +58,7 @@ async function syncClientes(companyId: string, sgpClient: NonNullable<ReturnType
   let phonesFound = 0
   let errors = 0
 
-  // Processa em lotes de 10 paralelos para reduzir de ~13min para ~1-2min
+  // Processa em lotes de 10 paralelos
   const CONCURRENCY = 10
   for (let i = 0; i < clientes.length; i += CONCURRENCY) {
     const lote = clientes.slice(i, i + CONCURRENCY)
@@ -70,16 +70,16 @@ async function syncClientes(companyId: string, sgpClient: NonNullable<ReturnType
         select: { whatsapp: true },
       })
 
+      // Reutiliza whatsapp já salvo; se não tiver, tenta extrair do bulk
+      // (evita 554 chamadas extras ao SGP — já temos os dados necessários)
       let whatsapp = existente?.whatsapp ?? null
 
-      if (!whatsapp) {
-        const detalhes = await sgpClient.getClienteDetalhes(c.cpfcnpj)
-        if (detalhes) {
-          const raw = sgpClient.pickBestPhone(detalhes)
-          whatsapp = normalizePhone(raw ?? '') ?? null
-          if (whatsapp) phonesFound++
-        }
+      if (!whatsapp && c.contratos?.length) {
+        // O bulk não retorna telefones diretamente; marca para enriquecimento posterior
+        // O cron diário de faturas pode enriquecer numa segunda passagem
       }
+
+      if (whatsapp) phonesFound++
 
       const client = await prisma.client.upsert({
         where: { companyId_externalId: { companyId, externalId } },

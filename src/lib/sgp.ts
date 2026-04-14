@@ -186,7 +186,7 @@ export class SGPClient_ {
     this.baseUrl = (config?.baseUrl || process.env.SGP_BASE_URL || '').replace(/\/$/, '')
     this.token   = config?.token || process.env.SGP_TOKEN || ''
     this.app     = config?.app   || process.env.SGP_APP   || ''
-    this.timeout = config?.timeout ?? (Number(process.env.SGP_TIMEOUT_MS) || 120_000)
+    this.timeout = config?.timeout ?? 180_000 // 3 minutos — ignora SGP_TIMEOUT_MS
   }
 
   /**
