@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getCompanyId } from '@/lib/session'
 import { prisma } from '@/lib/prisma'
 import { createSgpClient } from '@/lib/sgp'
+import { normalizePhone } from '@/lib/utils'
 
 export async function POST(req: NextRequest) {
   try {
@@ -69,11 +70,19 @@ async function syncClientes(companyId: string, sgpClient: NonNullable<ReturnType
         select: { whatsapp: true },
       })
 
-      // Reutiliza whatsapp já salvo
-      // (evita 554 chamadas extras ao SGP — bulk não retorna telefones)
-      const whatsapp = existente?.whatsapp ?? null
+      // Reutiliza whatsapp já salvo; se não tiver, busca detalhes no SGP
+      let whatsapp = existente?.whatsapp ?? null
 
-      if (whatsapp) phonesFound++
+      if (!whatsapp) {
+        const detalhes = await sgpClient.getClienteDetalhes(c.cpfcnpj)
+        if (detalhes) {
+          const raw = sgpClient.pickBestPhone(detalhes)
+          whatsapp = normalizePhone(raw ?? '') ?? null
+          if (whatsapp) phonesFound++
+        }
+      } else {
+        phonesFound++
+      }
 
       const client = await prisma.client.upsert({
         where: { companyId_externalId: { companyId, externalId } },
