@@ -19,8 +19,8 @@ export async function GET() {
 
     const headers = { apikey: key, 'Content-Type': 'application/json' }
 
-    // 1. Verifica se a instância existe
-    let instanceExists = false
+    // 1. Verifica estado atual da instância
+    let state = 'unknown'
     try {
       const checkRes = await fetch(`${base}/instance/connectionState/${inst}`, {
         headers,
@@ -28,19 +28,21 @@ export async function GET() {
       })
       if (checkRes.ok) {
         const checkData = await checkRes.json()
-        // Se já está conectada, não precisa de QR
-        if (checkData?.instance?.state === 'open') {
+        state = checkData?.instance?.state || 'unknown'
+        console.log(`[QR] Estado atual: ${state}`)
+
+        if (state === 'open') {
           return NextResponse.json({ error: 'WhatsApp já está conectado! Não é necessário escanear QR Code.' })
         }
-        instanceExists = true
       }
     } catch {
-      // instância não existe
+      state = 'not_found'
     }
 
-    // 2. Se a instância não existe, cria ela
-    if (!instanceExists) {
+    // 2. Se instância não existe, cria
+    if (state === 'not_found' || state === 'unknown') {
       try {
+        console.log(`[QR] Criando instância ${inst}...`)
         const createRes = await fetch(`${base}/instance/create`, {
           method: 'POST',
           headers,
@@ -51,21 +53,46 @@ export async function GET() {
           }),
         })
         const createData = await createRes.json()
-        console.log(`[QR] Instância criada:`, JSON.stringify(createData).slice(0, 200))
+        console.log(`[QR] Create response:`, JSON.stringify(createData).slice(0, 300))
 
-        // Algumas versões da Evolution retornam o QR na criação
-        if (createData?.qrcode?.base64) {
-          return NextResponse.json({ base64: createData.qrcode.base64 })
-        }
+        // Algumas versões retornam QR na criação
+        const qr = createData?.qrcode?.base64 || createData?.base64
+        if (qr) return NextResponse.json({ base64: qr })
 
-        // Aguarda um momento para a instância inicializar
         await new Promise((r) => setTimeout(r, 2000))
       } catch (err) {
         console.error('[QR] Erro ao criar instância:', err)
       }
     }
 
-    // 3. Tenta conectar e obter QR Code
+    // 3. Se está travada em "connecting" ou "close", reinicia antes
+    if (state === 'connecting' || state === 'close') {
+      try {
+        console.log(`[QR] Reiniciando instância (estado: ${state})...`)
+        await fetch(`${base}/instance/restart/${inst}`, {
+          method: 'PUT',
+          headers,
+          cache: 'no-store',
+        })
+        await new Promise((r) => setTimeout(r, 3000))
+      } catch (err) {
+        console.error('[QR] Erro ao reiniciar:', err)
+        // Se restart falhar, tenta logout + connect
+        try {
+          await fetch(`${base}/instance/logout/${inst}`, {
+            method: 'DELETE',
+            headers,
+            cache: 'no-store',
+          })
+          await new Promise((r) => setTimeout(r, 2000))
+        } catch {
+          // ignora
+        }
+      }
+    }
+
+    // 4. Tenta conectar e obter QR Code
+    console.log(`[QR] Chamando /instance/connect/${inst}...`)
     const res = await fetch(`${base}/instance/connect/${inst}`, {
       headers,
       cache: 'no-store',
@@ -74,19 +101,30 @@ export async function GET() {
     const data = await res.json()
     console.log(`[QR] Connect response:`, JSON.stringify(data).slice(0, 300))
 
-    // Evolution API pode retornar o base64 em diferentes formatos
     const qrBase64 = data?.base64 || data?.qrcode?.base64
 
-    if (!qrBase64) {
-      return NextResponse.json({
-        error: 'QR Code não disponível. Tente novamente em alguns segundos.',
-        debug: { status: res.status, keys: Object.keys(data) },
-      })
+    if (qrBase64) {
+      return NextResponse.json({ base64: qrBase64 })
     }
 
-    return NextResponse.json({ base64: qrBase64 })
+    // 5. Se não veio QR, tenta buscar via fetchInstances (fallback)
+    try {
+      console.log(`[QR] Tentando fetchInstances como fallback...`)
+      const fetchRes = await fetch(`${base}/instance/fetchInstances?instanceName=${inst}`, {
+        headers,
+        cache: 'no-store',
+      })
+      const fetchData = await fetchRes.json()
+      console.log(`[QR] FetchInstances response:`, JSON.stringify(fetchData).slice(0, 300))
+    } catch {
+      // apenas log
+    }
+
+    return NextResponse.json({
+      error: `QR Code não disponível (estado: ${state}). Tente novamente em alguns segundos.`,
+    })
   } catch (err) {
-    console.error('[QR] Erro:', err)
+    console.error('[QR] Erro geral:', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
