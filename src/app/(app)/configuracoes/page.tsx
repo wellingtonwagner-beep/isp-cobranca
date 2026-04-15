@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Building2, Wifi, MessageSquare, Clock, CheckCircle, Loader2, QrCode, RefreshCw } from 'lucide-react'
+import { Building2, Wifi, MessageSquare, Clock, CheckCircle, Loader2, QrCode, RefreshCw, Send } from 'lucide-react'
 
 type Tab = 'empresa' | 'erp' | 'whatsapp' | 'cobrancas'
 
@@ -47,6 +47,9 @@ export default function ConfiguracoesPage() {
   const [qrCode, setQrCode] = useState<string | null>(null)
   const [loadingQr, setLoadingQr] = useState(false)
   const [qrError, setQrError] = useState<string | null>(null)
+  const [testPhone, setTestPhone] = useState('')
+  const [sendingTest, setSendingTest] = useState(false)
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   useEffect(() => {
     fetch('/api/configuracoes')
@@ -132,6 +135,24 @@ export default function ConfiguracoesPage() {
       setQrError('Erro ao conectar com a Evolution API.')
     }
     setLoadingQr(false)
+  }
+
+  async function sendTestMessage() {
+    if (!testPhone.trim()) return
+    setSendingTest(true)
+    setTestResult(null)
+    try {
+      const res = await fetch('/api/admin/test-send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: testPhone }),
+      })
+      const d = await res.json()
+      setTestResult({ ok: d.ok || false, message: d.message || d.error || 'Erro desconhecido' })
+    } catch {
+      setTestResult({ ok: false, message: 'Erro ao enviar mensagem de teste.' })
+    }
+    setSendingTest(false)
   }
 
   async function save() {
@@ -302,6 +323,42 @@ export default function ConfiguracoesPage() {
               <hr className="border-gray-100" />
               <Field label="WhatsApp de atendimento" name="companyWhatsapp" value={form.companyWhatsapp as string} onChange={handleChange} placeholder="(37) 99999-9999" />
               <Field label="Horário de atendimento" name="companyHours" value={form.companyHours as string} onChange={handleChange} placeholder="Seg-Sex 8h às 18h | Sáb 8h às 12h" />
+
+              <hr className="border-gray-100" />
+
+              {/* Enviar mensagem de teste */}
+              <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-700">Enviar Mensagem de Teste</h3>
+                <p className="text-xs text-gray-500">Envie uma mensagem real para verificar se o envio está funcionando corretamente.</p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    placeholder="(37) 99999-9999"
+                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                  <button
+                    onClick={sendTestMessage}
+                    disabled={sendingTest || !testPhone.trim()}
+                    className="flex items-center gap-2 text-sm bg-purple-600 text-white px-5 py-2.5 rounded-lg hover:bg-purple-700 disabled:opacity-60 transition-colors whitespace-nowrap"
+                  >
+                    {sendingTest
+                      ? <><Loader2 size={14} className="animate-spin" /> Enviando...</>
+                      : <><Send size={14} /> Enviar Teste</>}
+                  </button>
+                </div>
+                {testResult && (
+                  <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
+                    testResult.ok
+                      ? 'bg-green-50 text-green-800 border border-green-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {testResult.ok ? <CheckCircle size={16} /> : <span>&#10060;</span>}
+                    {testResult.message}
+                  </div>
+                )}
+              </div>
             </>
           )}
 
