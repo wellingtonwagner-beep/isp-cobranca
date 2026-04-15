@@ -1,57 +1,17 @@
-import { prisma } from '@/lib/prisma'
+'use client'
+
+import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { TrendingUp, Users, DollarSign, MessageSquare } from 'lucide-react'
-import { formatCurrency } from '@/lib/utils'
 
-async function getGrowthData() {
-  try {
-    const now = new Date()
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1)
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-    const lastMonthEnd = new Date(now.getFullYear(), now.getMonth(), 0)
-
-    const [
-      totalClients,
-      newClientsThisMonth,
-      newClientsLastMonth,
-      totalOpenAmount,
-      sentThisMonth,
-      sentLastMonth,
-      stageStats,
-    ] = await Promise.all([
-      prisma.client.count({ where: { status: 'ativo' } }),
-      prisma.client.count({ where: { createdAt: { gte: thisMonthStart } } }),
-      prisma.client.count({ where: { createdAt: { gte: lastMonthStart, lt: lastMonthEnd } } }),
-      prisma.invoice.aggregate({
-        where: { status: { in: ['aberta', 'vencida'] } },
-        _sum: { amount: true },
-      }),
-      prisma.messageLog.count({ where: { sentAt: { gte: thisMonthStart }, status: 'sent' } }),
-      prisma.messageLog.count({
-        where: { sentAt: { gte: lastMonthStart, lt: lastMonthEnd }, status: 'sent' },
-      }),
-      prisma.messageLog.groupBy({
-        by: ['stage'],
-        where: { sentAt: { gte: thisMonthStart } },
-        _count: { stage: true },
-      }),
-    ])
-
-    return {
-      totalClients,
-      newClientsThisMonth,
-      newClientsLastMonth,
-      totalOpenAmount: totalOpenAmount._sum.amount || 0,
-      sentThisMonth,
-      sentLastMonth,
-      stageStats,
-    }
-  } catch {
-    return {
-      totalClients: 0, newClientsThisMonth: 0, newClientsLastMonth: 0,
-      totalOpenAmount: 0, sentThisMonth: 0, sentLastMonth: 0, stageStats: [],
-    }
-  }
+interface GrowthData {
+  totalClients: number
+  newClientsThisMonth: number
+  newClientsLastMonth: number
+  totalOpenAmountFormatted: string
+  sentThisMonth: number
+  sentLastMonth: number
+  stageStats: { stage: string; _count: { stage: number } }[]
 }
 
 const stageLabels: Record<string, string> = {
@@ -60,8 +20,19 @@ const stageLabels: Record<string, string> = {
   D_PLUS_10: 'D+10 Última Facilidade', D_PLUS_14: 'D+14 Suspensão',
 }
 
-export default async function GrowthPage() {
-  const data = await getGrowthData()
+export default function GrowthPage() {
+  const [data, setData] = useState<GrowthData | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/growth')
+      .then((r) => r.json())
+      .then((d) => { setData(d); setLoading(false) })
+      .catch(() => setLoading(false))
+  }, [])
+
+  if (loading) return <div className="py-20 text-center text-gray-400">Carregando...</div>
+  if (!data) return <div className="py-20 text-center text-gray-400">Erro ao carregar dados.</div>
 
   const clientGrowth = data.newClientsLastMonth > 0
     ? ((data.newClientsThisMonth - data.newClientsLastMonth) / data.newClientsLastMonth * 100).toFixed(1)
@@ -78,7 +49,6 @@ export default async function GrowthPage() {
         <p className="text-gray-500 text-sm mt-1">Métricas de crescimento e desempenho do sistema</p>
       </div>
 
-      {/* Métricas */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
         <MetricCard
           title="Clientes Ativos"
@@ -91,7 +61,7 @@ export default async function GrowthPage() {
         />
         <MetricCard
           title="Em Aberto (R$)"
-          value={formatCurrency(data.totalOpenAmount)}
+          value={data.totalOpenAmountFormatted}
           sub="faturas abertas + vencidas"
           icon={DollarSign}
           color="text-amber-600"
@@ -108,7 +78,6 @@ export default async function GrowthPage() {
         />
       </div>
 
-      {/* Distribuição por estágio */}
       <Card>
         <div className="px-5 py-4 border-b border-purple-50">
           <h2 className="font-semibold text-gray-800">Mensagens por Estágio (este mês)</h2>
