@@ -17,12 +17,14 @@ export async function GET() {
       return NextResponse.json({ error: 'Evolution API não configurada.' }, { status: 400 })
     }
 
+    // Remove barra final para evitar URLs com //
+    const baseUrl = base.replace(/\/+$/, '')
     const headers = { apikey: key, 'Content-Type': 'application/json' }
 
     // 1. Verifica estado atual da instância
     let state = 'unknown'
     try {
-      const checkRes = await fetch(`${base}/instance/connectionState/${inst}`, {
+      const checkRes = await fetch(`${baseUrl}/instance/connectionState/${inst}`, {
         headers,
         cache: 'no-store',
       })
@@ -43,7 +45,7 @@ export async function GET() {
     if (state === 'not_found' || state === 'unknown') {
       try {
         console.log(`[QR] Criando instância ${inst}...`)
-        const createRes = await fetch(`${base}/instance/create`, {
+        const createRes = await fetch(`${baseUrl}/instance/create`, {
           method: 'POST',
           headers,
           body: JSON.stringify({
@@ -69,7 +71,7 @@ export async function GET() {
     if (state === 'connecting' || state === 'close') {
       try {
         console.log(`[QR] Reiniciando instância (estado: ${state})...`)
-        await fetch(`${base}/instance/restart/${inst}`, {
+        await fetch(`${baseUrl}/instance/restart/${inst}`, {
           method: 'PUT',
           headers,
           cache: 'no-store',
@@ -79,7 +81,7 @@ export async function GET() {
         console.error('[QR] Erro ao reiniciar:', err)
         // Se restart falhar, tenta logout + connect
         try {
-          await fetch(`${base}/instance/logout/${inst}`, {
+          await fetch(`${baseUrl}/instance/logout/${inst}`, {
             method: 'DELETE',
             headers,
             cache: 'no-store',
@@ -93,7 +95,7 @@ export async function GET() {
 
     // 4. Tenta conectar e obter QR Code
     console.log(`[QR] Chamando /instance/connect/${inst}...`)
-    const res = await fetch(`${base}/instance/connect/${inst}`, {
+    const res = await fetch(`${baseUrl}/instance/connect/${inst}`, {
       headers,
       cache: 'no-store',
     })
@@ -110,7 +112,7 @@ export async function GET() {
     // 5. Se não veio QR, tenta buscar via fetchInstances (fallback)
     try {
       console.log(`[QR] Tentando fetchInstances como fallback...`)
-      const fetchRes = await fetch(`${base}/instance/fetchInstances?instanceName=${inst}`, {
+      const fetchRes = await fetch(`${baseUrl}/instance/fetchInstances?instanceName=${inst}`, {
         headers,
         cache: 'no-store',
       })

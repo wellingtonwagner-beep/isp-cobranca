@@ -18,7 +18,7 @@ export class EvolutionClient {
   constructor(config: EvolutionConfig) {
     this.instance = config.instance
     this.http = axios.create({
-      baseURL: config.baseUrl,
+      baseURL: config.baseUrl.replace(/\/+$/, ''),
       timeout: 15000,
       headers: {
         'apikey': config.apiKey,
