@@ -49,6 +49,34 @@ export class EvolutionClient {
       return false
     }
   }
+
+  async getConnectionDetails(): Promise<{ state: string; statusReason?: number }> {
+    try {
+      const res = await this.http.get(`/instance/connectionState/${this.instance}`)
+      return {
+        state: res.data?.instance?.state || 'unknown',
+        statusReason: res.data?.instance?.statusReason,
+      }
+    } catch {
+      return { state: 'not_found' }
+    }
+  }
+
+  async restartInstance(): Promise<void> {
+    try {
+      await this.http.put(`/instance/restart/${this.instance}`)
+    } catch {
+      // pode falhar se instância não existe
+    }
+  }
+
+  async logoutInstance(): Promise<void> {
+    try {
+      await this.http.delete(`/instance/logout/${this.instance}`)
+    } catch {
+      // pode falhar se instância não existe
+    }
+  }
 }
 
 /**

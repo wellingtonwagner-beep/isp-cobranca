@@ -15,13 +15,29 @@ export async function GET() {
       return NextResponse.json({ ok: false, error: 'Evolution API não configurada. Preencha URL, API Key e Instância.' })
     }
 
-    const connected = await client.checkConnection()
+    const details = await client.getConnectionDetails()
+
+    if (details.state === 'open') {
+      return NextResponse.json({
+        ok: true,
+        state: 'open',
+        message: 'WhatsApp conectado e pronto para enviar mensagens.',
+      })
+    }
+
+    if (details.state === 'not_found') {
+      return NextResponse.json({
+        ok: false,
+        state: 'not_found',
+        message: 'Instância não encontrada. Clique em "Conectar WhatsApp" para criar e escanear o QR Code.',
+      })
+    }
+
+    // close, connecting, etc.
     return NextResponse.json({
-      ok: connected,
-      status: connected ? 'Conectado' : 'Desconectado',
-      message: connected
-        ? 'WhatsApp conectado e pronto para enviar mensagens.'
-        : 'Instância desconectada. Verifique se o WhatsApp está escaneado na Evolution API.',
+      ok: false,
+      state: details.state,
+      message: `WhatsApp desconectado (estado: ${details.state}). Clique em "Conectar WhatsApp" para escanear o QR Code.`,
     })
   } catch (err) {
     return NextResponse.json({ ok: false, error: String(err) }, { status: 500 })
