@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Building2, Wifi, MessageSquare, Clock, CheckCircle, Loader2 } from 'lucide-react'
+import { Building2, Wifi, MessageSquare, Clock, CheckCircle, Loader2, QrCode, RefreshCw } from 'lucide-react'
 
 type Tab = 'empresa' | 'erp' | 'whatsapp' | 'cobrancas'
 
@@ -44,6 +44,9 @@ export default function ConfiguracoesPage() {
   const [loading, setLoading] = useState(true)
   const [testingWpp, setTestingWpp] = useState(false)
   const [wppStatus, setWppStatus] = useState<{ ok: boolean; message: string } | null>(null)
+  const [qrCode, setQrCode] = useState<string | null>(null)
+  const [loadingQr, setLoadingQr] = useState(false)
+  const [qrError, setQrError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/configuracoes')
@@ -93,6 +96,8 @@ export default function ConfiguracoesPage() {
   async function testWhatsapp() {
     setTestingWpp(true)
     setWppStatus(null)
+    setQrCode(null)
+    setQrError(null)
     // Salva primeiro para garantir que as credenciais atuais estão no banco
     await fetch('/api/configuracoes', {
       method: 'PUT',
@@ -103,6 +108,30 @@ export default function ConfiguracoesPage() {
     const d = await res.json()
     setWppStatus({ ok: d.ok, message: d.message || d.error || 'Erro desconhecido' })
     setTestingWpp(false)
+  }
+
+  async function generateQrCode() {
+    setLoadingQr(true)
+    setQrError(null)
+    setQrCode(null)
+    // Salva credenciais antes de gerar QR
+    await fetch('/api/configuracoes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    try {
+      const res = await fetch('/api/qr')
+      const d = await res.json()
+      if (d.base64) {
+        setQrCode(d.base64)
+      } else {
+        setQrError(d.error || 'Não foi possível gerar o QR Code.')
+      }
+    } catch {
+      setQrError('Erro ao conectar com a Evolution API.')
+    }
+    setLoadingQr(false)
   }
 
   async function save() {
@@ -210,21 +239,63 @@ export default function ConfiguracoesPage() {
               <Field label="API Key" name="evolutionApiKey" value={form.evolutionApiKey as string} onChange={handleChange} placeholder="Chave de API" />
               <Field label="Nome da instância" name="evolutionInstance" value={form.evolutionInstance as string} onChange={handleChange} placeholder="minha-instancia" />
 
-              {/* Teste de conexão */}
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={testWhatsapp}
-                  disabled={testingWpp}
-                  className="flex items-center gap-2 text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors"
-                >
-                  {testingWpp
-                    ? <><Loader2 size={14} className="animate-spin" /> Testando...</>
-                    : '📡 Testar Conexão WhatsApp'}
-                </button>
+              {/* Status e Conexão */}
+              <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-gray-700">Status da Conexão</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={testWhatsapp}
+                      disabled={testingWpp}
+                      className="flex items-center gap-2 text-sm bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors"
+                    >
+                      {testingWpp
+                        ? <><Loader2 size={14} className="animate-spin" /> Verificando...</>
+                        : <><RefreshCw size={14} /> Verificar Conexão</>}
+                    </button>
+                    <button
+                      onClick={generateQrCode}
+                      disabled={loadingQr}
+                      className="flex items-center gap-2 text-sm bg-[#1e1b4b] text-white px-4 py-2 rounded-lg hover:bg-[#312e81] disabled:opacity-60 transition-colors"
+                    >
+                      {loadingQr
+                        ? <><Loader2 size={14} className="animate-spin" /> Gerando...</>
+                        : <><QrCode size={14} /> Conectar WhatsApp</>}
+                    </button>
+                  </div>
+                </div>
+
                 {wppStatus && (
-                  <span className={`text-sm font-medium ${wppStatus.ok ? 'text-green-700' : 'text-red-600'}`}>
-                    {wppStatus.ok ? '✅' : '❌'} {wppStatus.message}
-                  </span>
+                  <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
+                    wppStatus.ok
+                      ? 'bg-green-50 text-green-800 border border-green-200'
+                      : 'bg-red-50 text-red-700 border border-red-200'
+                  }`}>
+                    {wppStatus.ok ? <CheckCircle size={16} /> : <span>&#10060;</span>}
+                    {wppStatus.message}
+                  </div>
+                )}
+
+                {qrError && (
+                  <div className="px-4 py-3 rounded-lg text-sm bg-amber-50 text-amber-800 border border-amber-200">
+                    {qrError}
+                  </div>
+                )}
+
+                {qrCode && (
+                  <div className="flex flex-col items-center gap-3 py-4">
+                    <p className="text-sm text-gray-600 font-medium">Escaneie o QR Code com seu WhatsApp:</p>
+                    <div className="bg-white p-4 rounded-xl border-2 border-gray-200 shadow-sm">
+                      <img src={qrCode} alt="QR Code WhatsApp" className="w-64 h-64" />
+                    </div>
+                    <p className="text-xs text-gray-400">O QR Code expira em alguns segundos. Se expirar, clique em &quot;Conectar WhatsApp&quot; novamente.</p>
+                    <button
+                      onClick={() => { setQrCode(null); testWhatsapp() }}
+                      className="text-sm text-purple-700 font-medium hover:underline"
+                    >
+                      Já escaneei, verificar conexão
+                    </button>
+                  </div>
                 )}
               </div>
 
