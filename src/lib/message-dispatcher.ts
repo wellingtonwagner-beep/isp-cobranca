@@ -19,12 +19,20 @@ export async function dispatchMessage(
   evolutionClient: EvolutionClient | null,
   companySettings?: { companyWhatsapp?: string | null; companyHours?: string | null },
   customTemplates?: CustomTemplates,
+  options?: { force?: boolean },
 ): Promise<DispatchResult> {
-  // 1. Anti-duplicata
-  const existing = await prisma.messageLog.findUnique({
-    where: { invoiceId_stage: { invoiceId: invoice.id, stage } },
-  })
-  if (existing) return { status: 'blocked_duplicate' }
+  // 1. Anti-duplicata (ignorada quando force=true)
+  if (!options?.force) {
+    const existing = await prisma.messageLog.findUnique({
+      where: { invoiceId_stage: { invoiceId: invoice.id, stage } },
+    })
+    if (existing) return { status: 'blocked_duplicate' }
+  } else {
+    // Em envio forçado (manual), remove log antigo para permitir novo envio
+    await prisma.messageLog.deleteMany({
+      where: { invoiceId: invoice.id, stage },
+    })
+  }
 
   // 2. Verifica número de WhatsApp
   if (!client.whatsapp) {

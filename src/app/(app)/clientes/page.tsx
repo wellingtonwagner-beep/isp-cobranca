@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Search, RefreshCw, Users } from 'lucide-react'
+import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle } from 'lucide-react'
 
 interface Client {
   id: string
@@ -19,11 +19,39 @@ interface Client {
   _count: { invoices: number; messageLogs: number }
 }
 
+interface Invoice {
+  id: string
+  externalId: string
+  dueDate: string
+  amount: number
+  status: string
+  boletoUrl: string | null
+  pixCode: string | null
+}
+
 const statusBadge: Record<string, 'success' | 'danger' | 'muted' | 'warning'> = {
   ativo: 'success',
   suspenso: 'warning',
   cancelado: 'danger',
   inadimplente: 'danger',
+}
+
+const STAGES = [
+  { id: 'D_MINUS_5', label: 'D-5 Lembrete Antecipado' },
+  { id: 'D_MINUS_2', label: 'D-2 Envio do Boleto' },
+  { id: 'D_ZERO', label: 'D-0 Dia do Vencimento' },
+  { id: 'D_PLUS_1', label: 'D+1 Pós-Vencimento' },
+  { id: 'D_PLUS_5', label: 'D+5 Regularização' },
+  { id: 'D_PLUS_10', label: 'D+10 Última Facilidade' },
+  { id: 'D_PLUS_14', label: 'D+14 Aviso de Suspensão' },
+]
+
+function formatCurrency(n: number) {
+  return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function formatDate(d: string) {
+  return new Date(d).toLocaleDateString('pt-BR')
 }
 
 export default function ClientesPage() {
@@ -36,6 +64,16 @@ export default function ClientesPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
+
+  // Modal de envio manual
+  const [sendModalClient, setSendModalClient] = useState<Client | null>(null)
+  const [invoices, setInvoices] = useState<Invoice[]>([])
+  const [loadingInvoices, setLoadingInvoices] = useState(false)
+  const [selectedInvoice, setSelectedInvoice] = useState<string>('')
+  const [selectedStage, setSelectedStage] = useState<string>('D_ZERO')
+  const [forceTestMode, setForceTestMode] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [sendResult, setSendResult] = useState<{ ok: boolean; message: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -69,13 +107,62 @@ export default function ClientesPage() {
         setSyncMsg({ ok: false, text: data.error || `Erro ${res.status}` })
       } else {
         setSyncMsg({ ok: true, text: data.message || 'Sync iniciado.' })
-        // Recarrega após 90s para dar tempo ao background sync
         setTimeout(() => load(), 90_000)
       }
     } catch (e) {
       setSyncMsg({ ok: false, text: String(e) })
     } finally {
       setSyncing(false)
+    }
+  }
+
+  async function openSendModal(client: Client) {
+    setSendModalClient(client)
+    setSelectedInvoice('')
+    setSelectedStage('D_ZERO')
+    setSendResult(null)
+    setForceTestMode(false)
+    setLoadingInvoices(true)
+    try {
+      const res = await fetch(`/api/clientes/${client.id}/invoices`)
+      const data = await res.json()
+      setInvoices(data.invoices || [])
+      if (data.invoices?.length > 0) setSelectedInvoice(data.invoices[0].id)
+    } catch {
+      setInvoices([])
+    } finally {
+      setLoadingInvoices(false)
+    }
+  }
+
+  function closeSendModal() {
+    setSendModalClient(null)
+    setInvoices([])
+    setSendResult(null)
+  }
+
+  async function sendMessage() {
+    if (!sendModalClient || !selectedInvoice || !selectedStage) return
+    setSending(true)
+    setSendResult(null)
+    try {
+      const res = await fetch('/api/admin/send-billing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clientId: sendModalClient.id,
+          invoiceId: selectedInvoice,
+          stage: selectedStage,
+          force: true,
+          testMode: forceTestMode ? true : undefined,
+        }),
+      })
+      const data = await res.json()
+      setSendResult({ ok: data.ok, message: data.message || data.error || 'Erro desconhecido' })
+    } catch (e) {
+      setSendResult({ ok: false, message: String(e) })
+    } finally {
+      setSending(false)
     }
   }
 
@@ -91,14 +178,12 @@ export default function ClientesPage() {
         </Button>
       </div>
 
-      {/* Sync status */}
       {syncMsg && (
         <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${syncMsg.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
           {syncMsg.text}
         </div>
       )}
 
-      {/* Filtros */}
       <Card className="mb-5">
         <CardContent className="py-3 flex gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-1 min-w-[200px]">
@@ -124,7 +209,6 @@ export default function ClientesPage() {
         </CardContent>
       </Card>
 
-      {/* Tabela */}
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -146,6 +230,7 @@ export default function ClientesPage() {
                       <th className="px-4 py-2 text-left">Status</th>
                       <th className="px-4 py-2 text-left">Faturas</th>
                       <th className="px-4 py-2 text-left">Mensagens</th>
+                      <th className="px-4 py-2 text-right">Ações</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -164,13 +249,22 @@ export default function ClientesPage() {
                         </td>
                         <td className="px-4 py-2.5 text-gray-600 text-xs">{c._count.invoices}</td>
                         <td className="px-4 py-2.5 text-gray-600 text-xs">{c._count.messageLogs}</td>
+                        <td className="px-4 py-2.5 text-right">
+                          <button
+                            onClick={() => openSendModal(c)}
+                            disabled={!c.whatsapp}
+                            title={c.whatsapp ? 'Enviar cobrança manual' : 'Cliente sem WhatsApp'}
+                            className="inline-flex items-center gap-1.5 text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <Send size={12} /> Enviar
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
 
-              {/* Paginação */}
               {pages > 1 && (
                 <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
                   <span className="text-xs text-gray-400">Página {page} de {pages}</span>
@@ -188,6 +282,117 @@ export default function ClientesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de envio manual */}
+      {sendModalClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeSendModal}>
+          <div
+            className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-semibold text-gray-900">Enviar Cobrança</h2>
+                <p className="text-xs text-gray-500 mt-0.5">{sendModalClient.name}</p>
+              </div>
+              <button onClick={closeSendModal} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <Send size={16} className="text-purple-600" />
+                <div className="text-sm">
+                  <div className="text-gray-700 font-medium">WhatsApp:</div>
+                  <div className="text-gray-500">{sendModalClient.whatsapp || '—'}</div>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Fatura</label>
+                {loadingInvoices ? (
+                  <div className="text-sm text-gray-400 py-3">Carregando faturas...</div>
+                ) : invoices.length === 0 ? (
+                  <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                    Nenhuma fatura em aberto para este cliente.
+                  </div>
+                ) : (
+                  <select
+                    value={selectedInvoice}
+                    onChange={(e) => setSelectedInvoice(e.target.value)}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  >
+                    {invoices.map((inv) => (
+                      <option key={inv.id} value={inv.id}>
+                        {formatDate(inv.dueDate)} · {formatCurrency(inv.amount)} · {inv.status}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1.5">Estágio da mensagem</label>
+                <select
+                  value={selectedStage}
+                  onChange={(e) => setSelectedStage(e.target.value)}
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  {STAGES.map((s) => (
+                    <option key={s.id} value={s.id}>{s.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1.5">
+                  O texto é o mesmo da cobrança automática deste estágio (pode ser personalizado em Workflow).
+                </p>
+              </div>
+
+              <label className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={forceTestMode}
+                  onChange={(e) => setForceTestMode(e.target.checked)}
+                  className="rounded"
+                />
+                <div className="text-sm">
+                  <span className="font-medium text-amber-800">Forçar modo teste</span>
+                  <div className="text-xs text-amber-700">Se marcado, a mensagem não será enviada de verdade (apenas registrada).</div>
+                </div>
+              </label>
+
+              {sendResult && (
+                <div className={`flex items-start gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
+                  sendResult.ok
+                    ? 'bg-green-50 text-green-800 border border-green-200'
+                    : 'bg-red-50 text-red-700 border border-red-200'
+                }`}>
+                  {sendResult.ok ? <CheckCircle size={16} className="mt-0.5 shrink-0" /> : <span className="shrink-0">&#10060;</span>}
+                  <span>{sendResult.message}</span>
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100">
+              <button
+                onClick={closeSendModal}
+                className="text-sm px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+              >
+                Fechar
+              </button>
+              <button
+                onClick={sendMessage}
+                disabled={sending || !selectedInvoice || invoices.length === 0}
+                className="inline-flex items-center gap-2 text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50 transition-colors"
+              >
+                {sending
+                  ? <><Loader2 size={14} className="animate-spin" /> Enviando...</>
+                  : <><Send size={14} /> Enviar Cobrança</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
