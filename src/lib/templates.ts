@@ -111,8 +111,7 @@ Pra facilitar, segue o boleto e o PIX prontinho pra você 👇`,
     pixMessage: (v: TemplateVars) => `🔗 *Boleto:* ${v.link_boleto || '(link do boleto)'}
 
 💳 *PIX Copia e Cola:*
-
-[mensagem separada com código PIX]`,
+${v.codigo_pix || ''}`,
   },
   {
     stage: 'D_ZERO',
@@ -125,7 +124,8 @@ Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* vence
 Ainda dá tempo de pagar e manter sua internet voando! 🚀`,
     pixMessage: (v: TemplateVars) => `🔗 *Boleto:* ${v.link_boleto || '(link do boleto)'}
 
-💳 *PIX Copia e Cola:*`,
+💳 *PIX Copia e Cola:*
+${v.codigo_pix || ''}`,
   },
   {
     stage: 'D_PLUS_1',
@@ -138,7 +138,8 @@ Passando pra avisar que sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME ||
 Mas relaxa, ainda dá pra pagar tranquilamente pelo boleto ou PIX! 😉`,
     pixMessage: (v: TemplateVars) => `🔗 *Boleto:* ${v.link_boleto || '(link do boleto)'}
 
-💳 *PIX Copia e Cola:*`,
+💳 *PIX Copia e Cola:*
+${v.codigo_pix || ''}`,
   },
   {
     stage: 'D_PLUS_5',
@@ -151,7 +152,8 @@ Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* tá c
 Regularizando, sua internet continua voando! 🚀`,
     pixMessage: (v: TemplateVars) => `🔗 *Boleto atualizado:* ${v.link_boleto || '(link do boleto)'}
 
-💳 *PIX:*`,
+💳 *PIX:*
+${v.codigo_pix || ''}`,
   },
   {
     stage: 'D_PLUS_10',

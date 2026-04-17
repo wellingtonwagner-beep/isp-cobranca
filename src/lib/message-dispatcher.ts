@@ -70,9 +70,9 @@ export async function dispatchMessage(
     const res = await evolutionClient.sendText(client.whatsapp, mainMessage)
     let msgIds = res.key?.id || ''
 
-    if (pixMessage && invoice.pixCode) {
+    if (pixMessage) {
       await new Promise((r) => setTimeout(r, 1500))
-      const pixRes = await evolutionClient.sendText(client.whatsapp, invoice.pixCode)
+      const pixRes = await evolutionClient.sendText(client.whatsapp, pixMessage)
       if (pixRes.key?.id) msgIds += `,${pixRes.key.id}`
     }
 
