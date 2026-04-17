@@ -15,6 +15,11 @@ interface Settings {
     sgpBaseUrl?: string
     sgpToken?: string
     sgpApp?: string
+    hubsoftBaseUrl?: string
+    hubsoftClientId?: string
+    hubsoftClientSecret?: string
+    hubsoftUsername?: string
+    hubsoftPassword?: string
     evolutionBaseUrl?: string
     evolutionApiKey?: string
     evolutionInstance?: string
@@ -63,6 +68,11 @@ export default function ConfiguracoesPage() {
           sgpBaseUrl: d.settings?.sgpBaseUrl || '',
           sgpToken: d.settings?.sgpToken || '',
           sgpApp: d.settings?.sgpApp || '',
+          hubsoftBaseUrl: d.settings?.hubsoftBaseUrl || '',
+          hubsoftClientId: d.settings?.hubsoftClientId || '',
+          hubsoftClientSecret: d.settings?.hubsoftClientSecret || '',
+          hubsoftUsername: d.settings?.hubsoftUsername || '',
+          hubsoftPassword: d.settings?.hubsoftPassword || '',
           evolutionBaseUrl: d.settings?.evolutionBaseUrl || '',
           evolutionApiKey: d.settings?.evolutionApiKey || '',
           evolutionInstance: d.settings?.evolutionInstance || '',
@@ -240,6 +250,7 @@ export default function ConfiguracoesPage() {
                   className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="sgp">SGP TSMX</option>
+                  <option value="hubsoft">HubSoft</option>
                   <option value="manual">Importação Manual (CSV)</option>
                   <option value="webhook">Webhook</option>
                 </select>
@@ -249,6 +260,15 @@ export default function ConfiguracoesPage() {
                   <Field label="URL do SGP" name="sgpBaseUrl" value={form.sgpBaseUrl as string} onChange={handleChange} placeholder="https://suaempresa.sgp.net.br" />
                   <Field label="Token SGP" name="sgpToken" value={form.sgpToken as string} onChange={handleChange} placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" />
                   <Field label="App SGP" name="sgpApp" value={form.sgpApp as string} onChange={handleChange} placeholder="isp-cobranca" />
+                </>
+              )}
+              {form.erpType === 'hubsoft' && (
+                <>
+                  <Field label="URL da API HubSoft" name="hubsoftBaseUrl" value={form.hubsoftBaseUrl as string} onChange={handleChange} placeholder="https://api.suaempresa.com.br" />
+                  <Field label="Client ID" name="hubsoftClientId" value={form.hubsoftClientId as string} onChange={handleChange} placeholder="ID do client OAuth" />
+                  <Field label="Client Secret" name="hubsoftClientSecret" value={form.hubsoftClientSecret as string} onChange={handleChange} placeholder="Secret do client OAuth" />
+                  <Field label="Usuário (e-mail)" name="hubsoftUsername" value={form.hubsoftUsername as string} onChange={handleChange} placeholder="usuario@empresa.com.br" />
+                  <Field label="Senha" name="hubsoftPassword" value={form.hubsoftPassword as string} onChange={handleChange} placeholder="Senha do usuário API" type="password" />
                 </>
               )}
             </>

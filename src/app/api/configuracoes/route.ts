@@ -32,6 +32,8 @@ export async function PUT(req: NextRequest) {
       name, logo,
       // ERP
       erpType, sgpBaseUrl, sgpToken, sgpApp,
+      // HubSoft
+      hubsoftBaseUrl, hubsoftClientId, hubsoftClientSecret, hubsoftUsername, hubsoftPassword,
       // Evolution
       evolutionBaseUrl, evolutionApiKey, evolutionInstance,
       // Mensagens
@@ -59,6 +61,11 @@ export async function PUT(req: NextRequest) {
         ...(sgpBaseUrl !== undefined && { sgpBaseUrl }),
         ...(sgpToken !== undefined && { sgpToken }),
         ...(sgpApp !== undefined && { sgpApp }),
+        ...(hubsoftBaseUrl !== undefined && { hubsoftBaseUrl }),
+        ...(hubsoftClientId !== undefined && { hubsoftClientId }),
+        ...(hubsoftClientSecret !== undefined && { hubsoftClientSecret }),
+        ...(hubsoftUsername !== undefined && { hubsoftUsername }),
+        ...(hubsoftPassword !== undefined && { hubsoftPassword }),
         ...(evolutionBaseUrl !== undefined && { evolutionBaseUrl }),
         ...(evolutionApiKey !== undefined && { evolutionApiKey }),
         ...(evolutionInstance !== undefined && { evolutionInstance }),
@@ -73,6 +80,7 @@ export async function PUT(req: NextRequest) {
         companyId,
         erpType: erpType || 'sgp',
         sgpBaseUrl, sgpToken, sgpApp,
+        hubsoftBaseUrl, hubsoftClientId, hubsoftClientSecret, hubsoftUsername, hubsoftPassword,
         evolutionBaseUrl, evolutionApiKey, evolutionInstance,
         companyWhatsapp, companyHours,
         testMode: testMode ?? true,

@@ -64,6 +64,7 @@ export default function ClientesPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [erpType, setErpType] = useState('sgp')
 
   // Modal de envio manual
   const [sendModalClient, setSendModalClient] = useState<Client | null>(null)
@@ -92,6 +93,12 @@ export default function ClientesPage() {
   }, [page, q, status])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    fetch('/api/configuracoes').then(r => r.json()).then(d => {
+      if (d.settings?.erpType) setErpType(d.settings.erpType)
+    }).catch(() => {})
+  }, [])
 
   async function syncClients() {
     setSyncing(true)
@@ -174,7 +181,7 @@ export default function ClientesPage() {
           <p className="text-gray-500 text-sm mt-1">{total} clientes cadastrados</p>
         </div>
         <Button size="sm" onClick={syncClients} loading={syncing}>
-          <RefreshCw size={14} /> Sincronizar SGP
+          <RefreshCw size={14} /> Sincronizar {erpType === 'hubsoft' ? 'HubSoft' : erpType === 'sgp' ? 'SGP' : 'ERP'}
         </Button>
       </div>
 

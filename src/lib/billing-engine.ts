@@ -3,6 +3,7 @@ import { dispatchMessage } from './message-dispatcher'
 import { isWithinSendWindow } from './send-window'
 import { isTodayHoliday } from './holidays'
 import { createSgpClient } from './sgp'
+import { createHubsoftClient } from './hubsoft'
 import { createEvolutionClient } from './evolution'
 import { todayStrBRT, addDaysBRT, dateToBRTString, parseDate } from './utils'
 import { STAGES, CustomTemplates } from './templates'
@@ -41,7 +42,9 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
     }
   }
 
-  const sgpClient = createSgpClient(settings || {})
+  const erpType = settings?.erpType || 'sgp'
+  const sgpClient = erpType === 'sgp' ? createSgpClient(settings || {}) : null
+  const hubsoftClient = erpType === 'hubsoft' ? createHubsoftClient(settings || {}) : null
   const evolutionClient = createEvolutionClient(settings || {})
 
   const companySettings = {
@@ -83,10 +86,15 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
     }
 
     for (const invoice of invoices) {
-      // D+0: valida pagamento em tempo real no SGP
-      if (stageConfig.stage === 'D_ZERO' && invoice.client.cpfCnpj && sgpClient) {
+      // D+0: valida pagamento em tempo real no ERP
+      if (stageConfig.stage === 'D_ZERO' && invoice.client.cpfCnpj) {
+        let paid = false
         try {
-          const paid = await sgpClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
+          if (sgpClient) {
+            paid = await sgpClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
+          } else if (hubsoftClient) {
+            paid = await hubsoftClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
+          }
           if (paid) {
             await prisma.invoice.update({
               where: { id: invoice.id },
@@ -96,7 +104,7 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
             continue
           }
         } catch {
-          // Se falhar a consulta SGP, continua com o status local
+          // Se falhar a consulta ao ERP, continua com o status local
         }
       }
 

@@ -37,10 +37,17 @@ model CompanySettings {
   company   Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
   // ERP Integration
-  erpType  String  @default("sgp") // sgp | manual | webhook
+  erpType  String  @default("sgp") // sgp | hubsoft | manual | webhook
   sgpBaseUrl  String?
   sgpToken    String?
   sgpApp      String?
+
+  // HubSoft
+  hubsoftBaseUrl      String?
+  hubsoftClientId     String?
+  hubsoftClientSecret String?
+  hubsoftUsername      String?
+  hubsoftPassword     String?
 
   // Evolution API (WhatsApp)
   evolutionBaseUrl  String?
