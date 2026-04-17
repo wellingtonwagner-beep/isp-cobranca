@@ -17,10 +17,10 @@ export async function GET(req: NextRequest) {
 
     if (q) {
       where.OR = [
-        { name: { contains: q } },
-        { cpfCnpj: { contains: q } },
-        { phone: { contains: q } },
-        { whatsapp: { contains: q } },
+        { name: { contains: q, mode: 'insensitive' } },
+        { cpfCnpj: { contains: q, mode: 'insensitive' } },
+        { phone: { contains: q, mode: 'insensitive' } },
+        { whatsapp: { contains: q, mode: 'insensitive' } },
       ]
     }
 
