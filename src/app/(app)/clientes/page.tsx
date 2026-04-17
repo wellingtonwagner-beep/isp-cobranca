@@ -154,7 +154,7 @@ export default function ClientesPage() {
           invoiceId: selectedInvoice,
           stage: selectedStage,
           force: true,
-          testMode: forceTestMode ? true : undefined,
+          testMode: forceTestMode,
         }),
       })
       const data = await res.json()
