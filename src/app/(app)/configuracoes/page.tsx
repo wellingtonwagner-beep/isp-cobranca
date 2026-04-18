@@ -47,6 +47,8 @@ export default function ConfiguracoesPage() {
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [testingErp, setTestingErp] = useState(false)
+  const [erpStatus, setErpStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [testingWpp, setTestingWpp] = useState(false)
   const [wppStatus, setWppStatus] = useState<{ ok: boolean; message: string } | null>(null)
   const [qrCode, setQrCode] = useState<string | null>(null)
@@ -92,6 +94,24 @@ export default function ConfiguracoesPage() {
     const { name, value, type } = e.target
     const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value
     setForm((f) => ({ ...f, [name]: val }))
+  }
+
+  async function testErpConnection() {
+    setTestingErp(true)
+    setErpStatus(null)
+    await fetch('/api/configuracoes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    try {
+      const res = await fetch('/api/admin/test-erp')
+      const d = await res.json()
+      setErpStatus({ ok: d.ok, message: d.message || d.error || 'Erro desconhecido' })
+    } catch {
+      setErpStatus({ ok: false, message: 'Erro ao conectar com a API.' })
+    }
+    setTestingErp(false)
   }
 
   function handleLogo(e: React.ChangeEvent<HTMLInputElement>) {
@@ -270,6 +290,36 @@ export default function ConfiguracoesPage() {
                   <Field label="Usuário (e-mail)" name="hubsoftUsername" value={form.hubsoftUsername as string} onChange={handleChange} placeholder="usuario@empresa.com.br" />
                   <Field label="Senha" name="hubsoftPassword" value={form.hubsoftPassword as string} onChange={handleChange} placeholder="Senha do usuário API" type="password" />
                 </>
+              )}
+
+              {(form.erpType === 'sgp' || form.erpType === 'hubsoft') && (
+                <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="text-sm font-semibold text-gray-700">Testar Conexão</h3>
+                      <p className="text-xs text-gray-500 mt-0.5">Salva as credenciais e testa a conexão com a API do ERP.</p>
+                    </div>
+                    <button
+                      onClick={testErpConnection}
+                      disabled={testingErp}
+                      className="flex items-center gap-2 text-sm bg-green-600 text-white px-5 py-2.5 rounded-lg hover:bg-green-700 disabled:opacity-60 transition-colors whitespace-nowrap"
+                    >
+                      {testingErp
+                        ? <><Loader2 size={14} className="animate-spin" /> Testando...</>
+                        : <><Wifi size={14} /> Testar Conexão</>}
+                    </button>
+                  </div>
+                  {erpStatus && (
+                    <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
+                      erpStatus.ok
+                        ? 'bg-green-50 text-green-800 border border-green-200'
+                        : 'bg-red-50 text-red-700 border border-red-200'
+                    }`}>
+                      {erpStatus.ok ? <CheckCircle size={16} /> : <span>&#10060;</span>}
+                      {erpStatus.message}
+                    </div>
+                  )}
+                </div>
               )}
             </>
           )}
