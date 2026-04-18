@@ -17,7 +17,7 @@ export async function dispatchMessage(
   stage: Stage,
   testMode: boolean,
   evolutionClient: EvolutionClient | null,
-  companySettings?: { companyWhatsapp?: string | null; companyHours?: string | null },
+  companySettings?: { companyName?: string | null; companyWhatsapp?: string | null; companyHours?: string | null },
   customTemplates?: CustomTemplates,
   options?: { force?: boolean },
 ): Promise<DispatchResult> {
@@ -47,6 +47,7 @@ export async function dispatchMessage(
     valor: formatCurrency(invoice.amount),
     link_boleto: invoice.boletoUrl || undefined,
     codigo_pix: invoice.pixCode || undefined,
+    company_name: companySettings?.companyName || process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora',
     company_whatsapp: companySettings?.companyWhatsapp || process.env.NEXT_PUBLIC_COMPANY_WHATSAPP || '',
     company_hours: companySettings?.companyHours || 'Seg-Sex 8h às 18h',
   }

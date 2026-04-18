@@ -10,8 +10,11 @@ import { STAGES, CustomTemplates } from './templates'
 import type { BillingEngineResult, Stage } from '@/types'
 
 export async function runDailyCheck(companyId: string): Promise<BillingEngineResult> {
-  // Carrega configurações da empresa
-  const settings = await prisma.companySettings.findUnique({ where: { companyId } })
+  // Carrega configurações e nome da empresa
+  const [settings, company] = await Promise.all([
+    prisma.companySettings.findUnique({ where: { companyId } }),
+    prisma.company.findUnique({ where: { id: companyId }, select: { name: true } }),
+  ])
 
   const testMode = settings?.testMode ?? true
   const windowStart = settings?.sendWindowStart || '08:00'
@@ -48,6 +51,7 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
   const evolutionClient = createEvolutionClient(settings || {})
 
   const companySettings = {
+    companyName: company?.name,
     companyWhatsapp: settings?.companyWhatsapp,
     companyHours: settings?.companyHours,
   }

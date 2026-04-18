@@ -91,7 +91,7 @@ export const TEMPLATES: MessageTemplate[] = [
     stage: 'D_MINUS_5',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! Tudo bem? 😊
 
-Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* tá chegando! Vence dia *${v.data_vencimento}*.
+Sua fatura da *${v.company_name || 'sua operadora'}* tá chegando! Vence dia *${v.data_vencimento}*.
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -103,7 +103,7 @@ Qualquer coisa, estamos por aqui!`,
     stage: 'D_MINUS_2',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! 😄
 
-Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* vence dia *${v.data_vencimento}*!
+Sua fatura da *${v.company_name || 'sua operadora'}* vence dia *${v.data_vencimento}*!
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -117,7 +117,7 @@ ${v.codigo_pix || ''}`,
     stage: 'D_ZERO',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! 👋
 
-Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* vence *hoje*!
+Sua fatura da *${v.company_name || 'sua operadora'}* vence *hoje*!
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -131,7 +131,7 @@ ${v.codigo_pix || ''}`,
     stage: 'D_PLUS_1',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! Tudo certo? 🙂
 
-Passando pra avisar que sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* venceu ontem (*${v.data_vencimento}*).
+Passando pra avisar que sua fatura da *${v.company_name || 'sua operadora'}* venceu ontem (*${v.data_vencimento}*).
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -145,7 +145,7 @@ ${v.codigo_pix || ''}`,
     stage: 'D_PLUS_5',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}! 👋
 
-Sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* tá com alguns dias em aberto e a gente quer te ajudar a resolver rapidinho!
+Sua fatura da *${v.company_name || 'sua operadora'}* tá com alguns dias em aberto e a gente quer te ajudar a resolver rapidinho!
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -159,7 +159,7 @@ ${v.codigo_pix || ''}`,
     stage: 'D_PLUS_10',
     mainMessage: (v: TemplateVars) => `Oi, ${v.nome}!
 
-A gente sabe que a correria do dia a dia é grande, mas sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}* tá precisando de uma atenção!
+A gente sabe que a correria do dia a dia é grande, mas sua fatura da *${v.company_name || 'sua operadora'}* tá precisando de uma atenção!
 
 🔥 Valor: *R$ ${v.valor}*
 
@@ -170,13 +170,13 @@ A gente quer te ajudar a resolver da melhor forma possível. 🤝
 💳 *PIX Copia e Cola:*
 
 Ou fale com a gente:
-📞 *${process.env.NEXT_PUBLIC_COMPANY_WHATSAPP || '(número)'}*
+📞 *${v.company_whatsapp || '(número)'}*
 🕐 Seg-Sex 8h às 18h | Sáb 8h às 12h`,
     pixMessage: (v: TemplateVars) => `${v.codigo_pix || '(código pix)'}`,
   },
   {
     stage: 'D_PLUS_14',
-    mainMessage: (v: TemplateVars) => `${v.nome}, precisamos falar sobre sua fatura da *${process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora'}*.
+    mainMessage: (v: TemplateVars) => `${v.nome}, precisamos falar sobre sua fatura da *${v.company_name || 'sua operadora'}*.
 
 Sua conta está em aberto há mais de 14 dias e infelizmente o *serviço será suspenso amanhã* caso não seja regularizada.
 
@@ -184,7 +184,7 @@ Sua conta está em aberto há mais de 14 dias e infelizmente o *serviço será s
 
 Sabemos que imprevistos acontecem. Se precisar de ajuda, entre em contato agora mesmo:
 
-📞 WhatsApp: *${process.env.NEXT_PUBLIC_COMPANY_WHATSAPP || '(número)'}*
+📞 WhatsApp: *${v.company_whatsapp || '(número)'}*
 🕐 Seg-Sex 8h às 18h | Sáb 8h às 12h
 
 Evite a suspensão — regularize hoje.`,

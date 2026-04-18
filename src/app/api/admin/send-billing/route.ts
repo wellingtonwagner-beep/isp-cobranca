@@ -32,10 +32,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Stage inválido.' }, { status: 400 })
     }
 
-    const [client, invoice, settings] = await Promise.all([
+    const [client, invoice, settings, company] = await Promise.all([
       prisma.client.findFirst({ where: { id: clientId, companyId } }),
       prisma.invoice.findFirst({ where: { id: invoiceId, companyId, clientId } }),
       prisma.companySettings.findUnique({ where: { companyId } }),
+      prisma.company.findUnique({ where: { id: companyId }, select: { name: true } }),
     ])
 
     if (!client) return NextResponse.json({ error: 'Cliente não encontrado.' }, { status: 404 })
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
       stage,
       testMode,
       evolutionClient,
-      { companyWhatsapp: settings?.companyWhatsapp, companyHours: settings?.companyHours },
+      { companyName: company?.name, companyWhatsapp: settings?.companyWhatsapp, companyHours: settings?.companyHours },
       customTemplates,
       { force: force ?? true },
     )

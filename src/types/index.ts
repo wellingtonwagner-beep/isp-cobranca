@@ -41,6 +41,8 @@ export interface TemplateVars {
   valor: string
   link_boleto?: string
   codigo_pix?: string
+  company_name?: string
+  company_whatsapp?: string
 }
 
 export interface BillingEngineResult {
