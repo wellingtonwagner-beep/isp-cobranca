@@ -45,8 +45,8 @@ export default function GrowthPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Growth</h1>
-        <p className="text-gray-500 text-sm mt-1">Métricas de crescimento e desempenho do sistema</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Growth</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Métricas de crescimento e desempenho do sistema</p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
@@ -56,16 +56,16 @@ export default function GrowthPage() {
           sub={`+${data.newClientsThisMonth} este mês`}
           growth={clientGrowth}
           icon={Users}
-          color="text-purple-600"
-          bg="bg-purple-50"
+          color="text-purple-600 dark:text-purple-400"
+          bg="bg-purple-50 dark:bg-purple-900/30"
         />
         <MetricCard
           title="Em Aberto (R$)"
           value={data.totalOpenAmountFormatted}
           sub="faturas abertas + vencidas"
           icon={DollarSign}
-          color="text-amber-600"
-          bg="bg-amber-50"
+          color="text-amber-600 dark:text-amber-400"
+          bg="bg-amber-50 dark:bg-amber-900/30"
         />
         <MetricCard
           title="Mensagens Enviadas"
@@ -73,14 +73,14 @@ export default function GrowthPage() {
           sub="este mês (enviadas)"
           growth={msgGrowth}
           icon={MessageSquare}
-          color="text-green-600"
-          bg="bg-green-50"
+          color="text-green-600 dark:text-green-400"
+          bg="bg-green-50 dark:bg-green-900/30"
         />
       </div>
 
       <Card>
-        <div className="px-5 py-4 border-b border-purple-50">
-          <h2 className="font-semibold text-gray-800">Mensagens por Estágio (este mês)</h2>
+        <div className="px-5 py-4 border-b border-purple-50 dark:border-gray-700">
+          <h2 className="font-semibold text-gray-800 dark:text-gray-200">Mensagens por Estágio (este mês)</h2>
         </div>
         <CardContent>
           {data.stageStats.length === 0 ? (
@@ -94,16 +94,16 @@ export default function GrowthPage() {
                   const pct = max > 0 ? (s._count.stage / max) * 100 : 0
                   return (
                     <div key={s.stage} className="flex items-center gap-3">
-                      <span className="text-xs font-medium text-gray-600 w-40 shrink-0">
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-400 w-40 shrink-0">
                         {stageLabels[s.stage] || s.stage}
                       </span>
-                      <div className="flex-1 bg-gray-100 rounded-full h-2">
+                      <div className="flex-1 bg-gray-100 dark:bg-gray-700 rounded-full h-2">
                         <div
                           className="bg-purple-500 h-2 rounded-full transition-all"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
-                      <span className="text-xs text-gray-500 w-8 text-right">{s._count.stage}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 w-8 text-right">{s._count.stage}</span>
                     </div>
                   )
                 })}
@@ -125,8 +125,8 @@ function MetricCard({
       <CardContent className="py-5">
         <div className="flex items-start justify-between">
           <div>
-            <p className="text-2xl font-bold text-gray-900">{value}</p>
-            <p className="text-sm font-medium text-gray-600 mt-0.5">{title}</p>
+            <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+            <p className="text-sm font-medium text-gray-600 dark:text-gray-300 mt-0.5">{title}</p>
             <p className="text-xs text-gray-400 mt-0.5">{sub}</p>
           </div>
           <div className={`${bg} p-3 rounded-xl`}>
@@ -134,8 +134,8 @@ function MetricCard({
           </div>
         </div>
         {growth !== undefined && growth !== null && (
-          <div className="mt-3 pt-3 border-t border-gray-100">
-            <span className={`text-xs font-medium ${parseFloat(growth) >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+            <span className={`text-xs font-medium ${parseFloat(growth) >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
               <TrendingUp className="inline w-3 h-3 mr-1" />
               {growth}% vs mês anterior
             </span>

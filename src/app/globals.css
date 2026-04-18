@@ -12,6 +12,11 @@
   --primary-light: #ede9fe;
 }
 
+.dark {
+  --background: #111827;
+  --foreground: #f3f4f6;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
@@ -23,6 +28,10 @@ body {
 ::-webkit-scrollbar-track { background: #f1f1f1; }
 ::-webkit-scrollbar-thumb { background: #c4b5fd; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #7c3aed; }
+
+.dark ::-webkit-scrollbar-track { background: #1f2937; }
+.dark ::-webkit-scrollbar-thumb { background: #4b5563; }
+.dark ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }

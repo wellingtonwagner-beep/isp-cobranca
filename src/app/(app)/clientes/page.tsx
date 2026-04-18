@@ -65,7 +65,6 @@ export default function ClientesPage() {
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
-  // Modal de envio manual
   const [sendModalClient, setSendModalClient] = useState<Client | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loadingInvoices, setLoadingInvoices] = useState(false)
@@ -92,7 +91,6 @@ export default function ClientesPage() {
   }, [page, q, status])
 
   useEffect(() => { load() }, [load])
-
 
   async function syncClients() {
     setSyncing(true)
@@ -171,8 +169,8 @@ export default function ClientesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Clientes</h1>
-          <p className="text-gray-500 text-sm mt-1">{total} clientes cadastrados</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Clientes</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{total} clientes cadastrados</p>
         </div>
         <Button size="sm" onClick={syncClients} loading={syncing}>
           <RefreshCw size={14} /> Sincronizar
@@ -180,7 +178,7 @@ export default function ClientesPage() {
       </div>
 
       {syncMsg && (
-        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${syncMsg.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${syncMsg.ok ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'}`}>
           {syncMsg.text}
         </div>
       )}
@@ -190,14 +188,14 @@ export default function ClientesPage() {
           <div className="flex items-center gap-2 flex-1 min-w-[200px]">
             <Search size={14} className="text-gray-400" />
             <input
-              className="flex-1 text-sm outline-none bg-transparent placeholder-gray-400"
+              className="flex-1 text-sm outline-none bg-transparent placeholder-gray-400 dark:text-gray-200"
               placeholder="Buscar por nome, CPF, telefone..."
               value={q}
               onChange={(e) => { setQ(e.target.value); setPage(1) }}
             />
           </div>
           <select
-            className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700"
+            className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
             value={status}
             onChange={(e) => { setStatus(e.target.value); setPage(1) }}
           >
@@ -216,7 +214,7 @@ export default function ClientesPage() {
             <div className="py-12 text-center text-gray-400 text-sm">Carregando...</div>
           ) : !clients.length ? (
             <div className="py-12 text-center">
-              <Users className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <Users className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
               <p className="text-gray-400 text-sm">Nenhum cliente encontrado.</p>
             </div>
           ) : (
@@ -224,7 +222,7 @@ export default function ClientesPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                       <th className="px-4 py-2 text-left">Nome</th>
                       <th className="px-4 py-2 text-left">WhatsApp</th>
                       <th className="px-4 py-2 text-left">Cidade</th>
@@ -236,20 +234,20 @@ export default function ClientesPage() {
                   </thead>
                   <tbody>
                     {clients.map((c) => (
-                      <tr key={c.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <tr key={c.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td className="px-4 py-2.5">
-                          <div className="font-medium text-gray-800">{c.name}</div>
+                          <div className="font-medium text-gray-800 dark:text-gray-200">{c.name}</div>
                           {c.email && <div className="text-xs text-gray-400">{c.email}</div>}
                         </td>
-                        <td className="px-4 py-2.5 text-gray-500 text-xs">
+                        <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-xs">
                           {c.whatsapp || c.phone || '—'}
                         </td>
-                        <td className="px-4 py-2.5 text-gray-500 text-xs">{c.city || '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-xs">{c.city || '—'}</td>
                         <td className="px-4 py-2.5">
                           <Badge variant={statusBadge[c.status] || 'muted'}>{c.status}</Badge>
                         </td>
-                        <td className="px-4 py-2.5 text-gray-600 text-xs">{c._count.invoices}</td>
-                        <td className="px-4 py-2.5 text-gray-600 text-xs">{c._count.messageLogs}</td>
+                        <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 text-xs">{c._count.invoices}</td>
+                        <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 text-xs">{c._count.messageLogs}</td>
                         <td className="px-4 py-2.5 text-right">
                           <button
                             onClick={() => openSendModal(c)}
@@ -267,7 +265,7 @@ export default function ClientesPage() {
               </div>
 
               {pages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
                   <span className="text-xs text-gray-400">Página {page} de {pages}</span>
                   <div className="flex gap-2">
                     <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>
@@ -288,41 +286,41 @@ export default function ClientesPage() {
       {sendModalClient && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeSendModal}>
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Enviar Cobrança</h2>
-                <p className="text-xs text-gray-500 mt-0.5">{sendModalClient.name}</p>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Enviar Cobrança</h2>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{sendModalClient.name}</p>
               </div>
-              <button onClick={closeSendModal} className="text-gray-400 hover:text-gray-600">
+              <button onClick={closeSendModal} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
                 <X size={20} />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Send size={16} className="text-purple-600" />
+              <div className="flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
+                <Send size={16} className="text-purple-600 dark:text-purple-400" />
                 <div className="text-sm">
-                  <div className="text-gray-700 font-medium">WhatsApp:</div>
-                  <div className="text-gray-500">{sendModalClient.whatsapp || '—'}</div>
+                  <div className="text-gray-700 dark:text-gray-300 font-medium">WhatsApp:</div>
+                  <div className="text-gray-500 dark:text-gray-400">{sendModalClient.whatsapp || '—'}</div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Fatura</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Fatura</label>
                 {loadingInvoices ? (
                   <div className="text-sm text-gray-400 py-3">Carregando faturas...</div>
                 ) : invoices.length === 0 ? (
-                  <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+                  <div className="text-sm text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 rounded-lg p-3">
                     Nenhuma fatura em aberto para este cliente.
                   </div>
                 ) : (
                   <select
                     value={selectedInvoice}
                     onChange={(e) => setSelectedInvoice(e.target.value)}
-                    className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     {invoices.map((inv) => (
                       <option key={inv.id} value={inv.id}>
@@ -334,11 +332,11 @@ export default function ClientesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Estágio da mensagem</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">Estágio da mensagem</label>
                 <select
                   value={selectedStage}
                   onChange={(e) => setSelectedStage(e.target.value)}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   {STAGES.map((s) => (
                     <option key={s.id} value={s.id}>{s.label}</option>
@@ -349,7 +347,7 @@ export default function ClientesPage() {
                 </p>
               </div>
 
-              <label className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 border border-amber-200 cursor-pointer">
+              <label className="flex items-center gap-2 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={forceTestMode}
@@ -357,16 +355,16 @@ export default function ClientesPage() {
                   className="rounded"
                 />
                 <div className="text-sm">
-                  <span className="font-medium text-amber-800">Forçar modo teste</span>
-                  <div className="text-xs text-amber-700">Se marcado, a mensagem não será enviada de verdade (apenas registrada).</div>
+                  <span className="font-medium text-amber-800 dark:text-amber-300">Forçar modo teste</span>
+                  <div className="text-xs text-amber-700 dark:text-amber-400">Se marcado, a mensagem não será enviada de verdade (apenas registrada).</div>
                 </div>
               </label>
 
               {sendResult && (
                 <div className={`flex items-start gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
                   sendResult.ok
-                    ? 'bg-green-50 text-green-800 border border-green-200'
-                    : 'bg-red-50 text-red-700 border border-red-200'
+                    ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                    : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'
                 }`}>
                   {sendResult.ok ? <CheckCircle size={16} className="mt-0.5 shrink-0" /> : <span className="shrink-0">&#10060;</span>}
                   <span>{sendResult.message}</span>
@@ -374,10 +372,10 @@ export default function ClientesPage() {
               )}
             </div>
 
-            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100">
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 dark:border-gray-700">
               <button
                 onClick={closeSendModal}
-                className="text-sm px-4 py-2 text-gray-600 hover:text-gray-800 font-medium"
+                className="text-sm px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 font-medium"
               >
                 Fechar
               </button>

@@ -131,7 +131,6 @@ export default function ConfiguracoesPage() {
     setWppStatus(null)
     setQrCode(null)
     setQrError(null)
-    // Salva primeiro para garantir que as credenciais atuais estão no banco
     await fetch('/api/configuracoes', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -147,7 +146,6 @@ export default function ConfiguracoesPage() {
     setLoadingQr(true)
     setQrError(null)
     setQrCode(null)
-    // Salva credenciais antes de gerar QR
     await fetch('/api/configuracoes', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -206,8 +204,8 @@ export default function ConfiguracoesPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Configurações</h1>
-          <p className="text-gray-500 text-sm mt-1">Gerencie sua empresa e integrações</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Configurações</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Gerencie sua empresa e integrações</p>
         </div>
         <Button onClick={save} loading={saving} size="sm">
           {saved ? <><CheckCircle size={14} /> Salvo!</> : 'Salvar alterações'}
@@ -215,7 +213,7 @@ export default function ConfiguracoesPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1 mb-6 bg-white rounded-xl p-1 border border-gray-100 w-fit">
+      <div className="flex gap-1 mb-6 bg-white dark:bg-gray-800 rounded-xl p-1 border border-gray-100 dark:border-gray-700 w-fit">
         {TABS.map(({ id, label, icon: Icon }) => (
           <button
             key={id}
@@ -223,7 +221,7 @@ export default function ConfiguracoesPage() {
             className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
               tab === id
                 ? 'bg-[#1e1b4b] text-white'
-                : 'text-gray-500 hover:text-gray-800'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200'
             }`}
           >
             <Icon size={15} />
@@ -238,16 +236,16 @@ export default function ConfiguracoesPage() {
           {tab === 'empresa' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Logo da empresa</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Logo da empresa</label>
                 <div className="flex items-center gap-4">
                   {logoPreview ? (
-                    <img src={logoPreview} alt="Logo" className="w-16 h-16 rounded-xl object-contain border border-gray-200 bg-gray-50" />
+                    <img src={logoPreview} alt="Logo" className="w-16 h-16 rounded-xl object-contain border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700" />
                   ) : (
-                    <div className="w-16 h-16 rounded-xl bg-purple-50 border-2 border-dashed border-purple-200 flex items-center justify-center text-purple-300 text-xs">
+                    <div className="w-16 h-16 rounded-xl bg-purple-50 dark:bg-purple-900/30 border-2 border-dashed border-purple-200 dark:border-purple-700 flex items-center justify-center text-purple-300 text-xs">
                       Logo
                     </div>
                   )}
-                  <label className="cursor-pointer text-sm text-purple-700 font-medium hover:underline">
+                  <label className="cursor-pointer text-sm text-purple-700 dark:text-purple-400 font-medium hover:underline">
                     Alterar logo
                     <input type="file" accept="image/*" className="hidden" onChange={handleLogo} />
                   </label>
@@ -262,12 +260,12 @@ export default function ConfiguracoesPage() {
           {tab === 'erp' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Sistema ERP</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Sistema ERP</label>
                 <select
                   name="erpType"
                   value={form.erpType as string}
                   onChange={handleChange}
-                  className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
                 >
                   <option value="sgp">SGP TSMX</option>
                   <option value="hubsoft">HubSoft</option>
@@ -293,11 +291,11 @@ export default function ConfiguracoesPage() {
               )}
 
               {(form.erpType === 'sgp' || form.erpType === 'hubsoft') && (
-                <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 space-y-3">
+                <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h3 className="text-sm font-semibold text-gray-700">Testar Conexão</h3>
-                      <p className="text-xs text-gray-500 mt-0.5">Salva as credenciais e testa a conexão com a API do ERP.</p>
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Testar Conexão</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Salva as credenciais e testa a conexão com a API do ERP.</p>
                     </div>
                     <button
                       onClick={testErpConnection}
@@ -312,8 +310,8 @@ export default function ConfiguracoesPage() {
                   {erpStatus && (
                     <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
                       erpStatus.ok
-                        ? 'bg-green-50 text-green-800 border border-green-200'
-                        : 'bg-red-50 text-red-700 border border-red-200'
+                        ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                        : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'
                     }`}>
                       {erpStatus.ok ? <CheckCircle size={16} /> : <span>&#10060;</span>}
                       {erpStatus.message}
@@ -331,9 +329,9 @@ export default function ConfiguracoesPage() {
               <Field label="Nome da instância" name="evolutionInstance" value={form.evolutionInstance as string} onChange={handleChange} placeholder="minha-instancia" />
 
               {/* Status e Conexão */}
-              <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 space-y-4">
+              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-700">Status da Conexão</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Status da Conexão</h3>
                   <div className="flex gap-2">
                     <button
                       onClick={testWhatsapp}
@@ -359,8 +357,8 @@ export default function ConfiguracoesPage() {
                 {wppStatus && (
                   <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
                     wppStatus.ok
-                      ? 'bg-green-50 text-green-800 border border-green-200'
-                      : 'bg-red-50 text-red-700 border border-red-200'
+                      ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                      : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'
                   }`}>
                     {wppStatus.ok ? <CheckCircle size={16} /> : <span>&#10060;</span>}
                     {wppStatus.message}
@@ -368,21 +366,21 @@ export default function ConfiguracoesPage() {
                 )}
 
                 {qrError && (
-                  <div className="px-4 py-3 rounded-lg text-sm bg-amber-50 text-amber-800 border border-amber-200">
+                  <div className="px-4 py-3 rounded-lg text-sm bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-700">
                     {qrError}
                   </div>
                 )}
 
                 {qrCode && (
                   <div className="flex flex-col items-center gap-3 py-4">
-                    <p className="text-sm text-gray-600 font-medium">Escaneie o QR Code com seu WhatsApp:</p>
-                    <div className="bg-white p-4 rounded-xl border-2 border-gray-200 shadow-sm">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 font-medium">Escaneie o QR Code com seu WhatsApp:</p>
+                    <div className="bg-white p-4 rounded-xl border-2 border-gray-200 dark:border-gray-600 shadow-sm">
                       <img src={qrCode} alt="QR Code WhatsApp" className="w-64 h-64" />
                     </div>
                     <p className="text-xs text-gray-400">O QR Code expira em alguns segundos. Se expirar, clique em &quot;Conectar WhatsApp&quot; novamente.</p>
                     <button
                       onClick={() => { setQrCode(null); testWhatsapp() }}
-                      className="text-sm text-purple-700 font-medium hover:underline"
+                      className="text-sm text-purple-700 dark:text-purple-400 font-medium hover:underline"
                     >
                       Já escaneei, verificar conexão
                     </button>
@@ -390,23 +388,23 @@ export default function ConfiguracoesPage() {
                 )}
               </div>
 
-              <hr className="border-gray-100" />
+              <hr className="border-gray-100 dark:border-gray-700" />
               <Field label="WhatsApp de atendimento" name="companyWhatsapp" value={form.companyWhatsapp as string} onChange={handleChange} placeholder="(37) 99999-9999" />
               <Field label="Horário de atendimento" name="companyHours" value={form.companyHours as string} onChange={handleChange} placeholder="Seg-Sex 8h às 18h | Sáb 8h às 12h" />
 
-              <hr className="border-gray-100" />
+              <hr className="border-gray-100 dark:border-gray-700" />
 
               {/* Enviar mensagem de teste */}
-              <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700">Enviar Mensagem de Teste</h3>
-                <p className="text-xs text-gray-500">Envie uma mensagem real para verificar se o envio está funcionando corretamente.</p>
+              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 space-y-3">
+                <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Enviar Mensagem de Teste</h3>
+                <p className="text-xs text-gray-500 dark:text-gray-400">Envie uma mensagem real para verificar se o envio está funcionando corretamente.</p>
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={testPhone}
                     onChange={(e) => setTestPhone(e.target.value)}
                     placeholder="(37) 99999-9999"
-                    className="flex-1 border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                    className="flex-1 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                   <button
                     onClick={sendTestMessage}
@@ -421,8 +419,8 @@ export default function ConfiguracoesPage() {
                 {testResult && (
                   <div className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium ${
                     testResult.ok
-                      ? 'bg-green-50 text-green-800 border border-green-200'
-                      : 'bg-red-50 text-red-700 border border-red-200'
+                      ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300 border border-green-200 dark:border-green-700'
+                      : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700'
                   }`}>
                     {testResult.ok ? <CheckCircle size={16} /> : <span>&#10060;</span>}
                     {testResult.message}
@@ -434,10 +432,10 @@ export default function ConfiguracoesPage() {
 
           {tab === 'cobrancas' && (
             <>
-              <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-200">
+              <div className="flex items-center justify-between p-4 bg-amber-50 dark:bg-amber-900/30 rounded-xl border border-amber-200 dark:border-amber-700">
                 <div>
-                  <p className="font-medium text-amber-800 text-sm">Modo Teste</p>
-                  <p className="text-xs text-amber-600 mt-0.5">Quando ativo, mensagens são bloqueadas e apenas logadas</p>
+                  <p className="font-medium text-amber-800 dark:text-amber-300 text-sm">Modo Teste</p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">Quando ativo, mensagens são bloqueadas e apenas logadas</p>
                 </div>
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
@@ -447,7 +445,7 @@ export default function ConfiguracoesPage() {
                     onChange={handleChange}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                  <div className="w-11 h-6 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                 </label>
               </div>
 
@@ -457,7 +455,7 @@ export default function ConfiguracoesPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Dias de envio</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Dias de envio</label>
                 <div className="flex gap-2 flex-wrap">
                   {[
                     { v: '0', l: 'Dom' }, { v: '1', l: 'Seg' }, { v: '2', l: 'Ter' },
@@ -473,7 +471,7 @@ export default function ConfiguracoesPage() {
                           setForm((f) => ({ ...f, sendDays: next.sort().join(',') }))
                         }}
                         className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
-                          active ? 'bg-[#1e1b4b] text-white' : 'bg-gray-100 text-gray-600'
+                          active ? 'bg-[#1e1b4b] text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
                         }`}
                       >
                         {l}
@@ -503,7 +501,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
       <input
         type={type}
         name={name}
@@ -511,7 +509,7 @@ function Field({
         onChange={onChange}
         disabled={disabled}
         placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-50 disabled:text-gray-400"
+        className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
       />
     </div>
   )

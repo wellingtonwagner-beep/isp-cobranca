@@ -46,8 +46,8 @@ export default function DashboardPage() {
       value: data.activeClients,
       sub: `${data.totalClients} total`,
       icon: Users,
-      color: 'text-purple-600',
-      bg: 'bg-purple-50',
+      color: 'text-purple-600 dark:text-purple-400',
+      bg: 'bg-purple-50 dark:bg-purple-900/30',
       href: '/clientes',
     },
     {
@@ -55,8 +55,8 @@ export default function DashboardPage() {
       value: data.openInvoices,
       sub: 'aguardando pagamento',
       icon: FileText,
-      color: 'text-blue-600',
-      bg: 'bg-blue-50',
+      color: 'text-blue-600 dark:text-blue-400',
+      bg: 'bg-blue-50 dark:bg-blue-900/30',
       href: '/cobrancas',
     },
     {
@@ -64,8 +64,8 @@ export default function DashboardPage() {
       value: data.overdueInvoices,
       sub: 'faturas vencidas',
       icon: AlertTriangle,
-      color: 'text-amber-600',
-      bg: 'bg-amber-50',
+      color: 'text-amber-600 dark:text-amber-400',
+      bg: 'bg-amber-50 dark:bg-amber-900/30',
       href: '/inadimplencia',
     },
     {
@@ -73,8 +73,8 @@ export default function DashboardPage() {
       value: data.todayLogs,
       sub: `${data.monthLogs} neste mês`,
       icon: MessageSquare,
-      color: 'text-green-600',
-      bg: 'bg-green-50',
+      color: 'text-green-600 dark:text-green-400',
+      bg: 'bg-green-50 dark:bg-green-900/30',
       href: '/cobrancas',
     },
   ]
@@ -82,8 +82,8 @@ export default function DashboardPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-        <p className="text-gray-500 text-sm mt-1">Visão geral do sistema de cobrança</p>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Dashboard</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Visão geral do sistema de cobrança</p>
       </div>
 
       {/* Métricas principais */}
@@ -96,8 +96,8 @@ export default function DashboardPage() {
                   <m.icon className={`${m.color} w-5 h-5`} />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold text-gray-900">{m.value}</p>
-                  <p className="text-sm font-medium text-gray-600">{m.label}</p>
+                  <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{m.value}</p>
+                  <p className="text-sm font-medium text-gray-600 dark:text-gray-300">{m.label}</p>
                   <p className="text-xs text-gray-400">{m.sub}</p>
                 </div>
               </CardContent>
@@ -111,23 +111,23 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="py-5">
             <div className="flex items-center gap-3 mb-3">
-              <RefreshCw className="text-purple-600 w-4 h-4" />
-              <h3 className="font-semibold text-gray-800 text-sm">Sincronização</h3>
+              <RefreshCw className="text-purple-600 dark:text-purple-400 w-4 h-4" />
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Sincronização</h3>
             </div>
-            <p className="text-xs text-gray-500 mb-3">Sincronize clientes e faturas do ERP manualmente.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Sincronize clientes e faturas do ERP manualmente.</p>
             {syncMsg && (
-              <p className="text-xs text-purple-700 bg-purple-50 rounded px-2 py-1 mb-3">{syncMsg}</p>
+              <p className="text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded px-2 py-1 mb-3">{syncMsg}</p>
             )}
             <div className="flex gap-2">
               <button
                 onClick={() => handleSync('clientes')}
-                className="text-xs bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-50 transition-colors"
+                className="text-xs bg-white dark:bg-gray-700 border border-purple-200 dark:border-gray-600 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors"
               >
                 Clientes
               </button>
               <button
                 onClick={() => handleSync('faturas')}
-                className="text-xs bg-white border border-purple-200 text-purple-700 px-3 py-1.5 rounded-lg hover:bg-purple-50 transition-colors"
+                className="text-xs bg-white dark:bg-gray-700 border border-purple-200 dark:border-gray-600 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors"
               >
                 Faturas
               </button>
@@ -138,10 +138,10 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="py-5">
             <div className="flex items-center gap-3 mb-3">
-              <MessageSquare className="text-purple-600 w-4 h-4" />
-              <h3 className="font-semibold text-gray-800 text-sm">Central de Cobranças</h3>
+              <MessageSquare className="text-purple-600 dark:text-purple-400 w-4 h-4" />
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Central de Cobranças</h3>
             </div>
-            <p className="text-xs text-gray-500 mb-4">Gerencie os disparos de cobrança via WhatsApp.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Gerencie os disparos de cobrança via WhatsApp.</p>
             <Link
               href="/cobrancas"
               className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition-colors"
@@ -154,10 +154,10 @@ export default function DashboardPage() {
         <Card>
           <CardContent className="py-5">
             <div className="flex items-center gap-3 mb-3">
-              <TrendingUp className="text-purple-600 w-4 h-4" />
-              <h3 className="font-semibold text-gray-800 text-sm">Workflow de Cobrança</h3>
+              <TrendingUp className="text-purple-600 dark:text-purple-400 w-4 h-4" />
+              <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Workflow de Cobrança</h3>
             </div>
-            <p className="text-xs text-gray-500 mb-4">Visualize e configure os 7 estágios de cobrança.</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Visualize e configure os 7 estágios de cobrança.</p>
             <Link
               href="/workflow"
               className="text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 transition-colors"

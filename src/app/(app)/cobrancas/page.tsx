@@ -75,8 +75,8 @@ export default function CobrancasPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Central de Cobranças</h1>
-          <p className="text-gray-500 text-sm mt-1">Gestão completa dos disparos de cobrança via WhatsApp</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Central de Cobranças</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Gestão completa dos disparos de cobrança via WhatsApp</p>
         </div>
         <div className="flex gap-2">
           <Button variant="secondary" size="sm" onClick={load} loading={loading}>
@@ -95,48 +95,48 @@ export default function CobrancasPage() {
           value={summary?.planned ?? 0}
           sub="faturas em 6 estágios"
           icon={Clock}
-          color="text-purple-600"
-          bg="bg-purple-50"
+          color="text-purple-600 dark:text-purple-400"
+          bg="bg-purple-50 dark:bg-purple-900/30"
         />
         <SummaryCard
           title="Enviados"
           value={summary?.sent ?? 0}
           sub="entregues via WhatsApp"
           icon={CheckCircle}
-          color="text-green-600"
-          bg="bg-green-50"
+          color="text-green-600 dark:text-green-400"
+          bg="bg-green-50 dark:bg-green-900/30"
         />
         <SummaryCard
           title="Bloqueados (teste)"
           value={summary?.blocked ?? 0}
           sub="modo teste ativo"
           icon={XCircle}
-          color="text-amber-600"
-          bg="bg-amber-50"
+          color="text-amber-600 dark:text-amber-400"
+          bg="bg-amber-50 dark:bg-amber-900/30"
         />
         <SummaryCard
           title="Pendentes"
           value={summary?.pending ?? 0}
           sub="aguardando próximo cron"
           icon={Clock}
-          color="text-blue-600"
-          bg="bg-blue-50"
+          color="text-blue-600 dark:text-blue-400"
+          bg="bg-blue-50 dark:bg-blue-900/30"
         />
       </div>
 
       {/* Previstos para hoje */}
       {data?.stagePreview && data.stagePreview.length > 0 && (
         <Card className="mb-6">
-          <div className="px-5 py-3 border-b border-purple-50">
-            <h2 className="font-semibold text-gray-800">Previstos para Hoje</h2>
+          <div className="px-5 py-3 border-b border-purple-50 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-800 dark:text-gray-200">Previstos para Hoje</h2>
           </div>
           <CardContent>
             <div className="flex flex-wrap gap-3">
               {data.stagePreview.map((s) => (
-                <div key={s.stage} className="flex items-center gap-2 bg-purple-50 px-3 py-2 rounded-lg">
-                  <span className="text-xs font-bold text-purple-700">{stageLabels[s.stage]}</span>
-                  <span className="text-xs text-gray-600">{s.label}</span>
-                  <span className="text-xs font-semibold text-purple-900 bg-purple-200 px-1.5 py-0.5 rounded-full">
+                <div key={s.stage} className="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/30 px-3 py-2 rounded-lg">
+                  <span className="text-xs font-bold text-purple-700 dark:text-purple-300">{stageLabels[s.stage]}</span>
+                  <span className="text-xs text-gray-600 dark:text-gray-400">{s.label}</span>
+                  <span className="text-xs font-semibold text-purple-900 dark:text-purple-200 bg-purple-200 dark:bg-purple-800 px-1.5 py-0.5 rounded-full">
                     {s.count}
                   </span>
                 </div>
@@ -148,8 +148,8 @@ export default function CobrancasPage() {
 
       {/* Histórico de Envios */}
       <Card>
-        <div className="px-5 py-3 border-b border-purple-50">
-          <h2 className="font-semibold text-gray-800">Histórico de Envios</h2>
+        <div className="px-5 py-3 border-b border-purple-50 dark:border-gray-700">
+          <h2 className="font-semibold text-gray-800 dark:text-gray-200">Histórico de Envios</h2>
           <p className="text-xs text-gray-400 mt-0.5">Últimos 7 dias</p>
         </div>
         <CardContent className="p-0">
@@ -163,7 +163,7 @@ export default function CobrancasPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase">
+                  <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <th className="px-4 py-2 text-left">Cliente</th>
                     <th className="px-4 py-2 text-left">Estágio</th>
                     <th className="px-4 py-2 text-left">Valor</th>
@@ -176,20 +176,20 @@ export default function CobrancasPage() {
                   {data.recentLogs.map((log) => {
                     const sc = statusConfig[log.status] || { label: log.status, variant: 'muted' as const }
                     return (
-                      <tr key={log.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <tr key={log.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td className="px-4 py-2.5">
-                          <div className="font-medium text-gray-800">{log.client?.name}</div>
+                          <div className="font-medium text-gray-800 dark:text-gray-200">{log.client?.name}</div>
                           <div className="text-xs text-gray-400">{log.whatsappTo}</div>
                         </td>
                         <td className="px-4 py-2.5">
-                          <span className="text-xs font-bold bg-purple-100 text-purple-700 px-2 py-0.5 rounded">
+                          <span className="text-xs font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded">
                             {stageLabels[log.stage] || log.stage}
                           </span>
                         </td>
-                        <td className="px-4 py-2.5 text-gray-700">
+                        <td className="px-4 py-2.5 text-gray-700 dark:text-gray-300">
                           {formatCurrency(log.invoice?.amount || 0)}
                         </td>
-                        <td className="px-4 py-2.5 text-gray-500 text-xs">
+                        <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-xs">
                           {log.invoice?.dueDate ? formatDateBR(log.invoice.dueDate) : '—'}
                         </td>
                         <td className="px-4 py-2.5">
@@ -225,8 +225,8 @@ function SummaryCard({
         <div className={`${bg} w-8 h-8 rounded-lg flex items-center justify-center mb-3`}>
           <Icon className={`${color} w-4 h-4`} />
         </div>
-        <p className="text-2xl font-bold text-gray-900">{value}</p>
-        <p className="text-sm font-medium text-gray-700 mt-0.5">{title}</p>
+        <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{value}</p>
+        <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mt-0.5">{title}</p>
         <p className="text-xs text-gray-400">{sub}</p>
       </CardContent>
     </Card>

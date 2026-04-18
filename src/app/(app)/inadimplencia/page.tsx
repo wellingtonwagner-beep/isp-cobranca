@@ -23,7 +23,6 @@ const stageLabels: Record<string, string> = {
 
 function getDaysVariant(days: number): 'warning' | 'danger' | 'muted' {
   if (days <= 5) return 'warning'
-  if (days <= 14) return 'danger'
   return 'danger'
 }
 
@@ -53,8 +52,8 @@ export default function InadimplenciaPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Inadimplência</h1>
-          <p className="text-gray-500 text-sm mt-1">{total} faturas em atraso</p>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Inadimplência</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{total} faturas em atraso</p>
         </div>
         <Button variant="secondary" size="sm" onClick={load} loading={loading}>
           <RefreshCw size={14} /> Atualizar
@@ -67,7 +66,7 @@ export default function InadimplenciaPage() {
             <div className="py-12 text-center text-gray-400 text-sm">Carregando...</div>
           ) : !invoices.length ? (
             <div className="py-12 text-center">
-              <AlertTriangle className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <AlertTriangle className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
               <p className="text-gray-400 text-sm">Nenhuma fatura em atraso. Ótimo!</p>
             </div>
           ) : (
@@ -75,7 +74,7 @@ export default function InadimplenciaPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-sm">
                   <thead>
-                    <tr className="border-b border-gray-100 bg-gray-50 text-xs text-gray-500 uppercase">
+                    <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                       <th className="px-4 py-2 text-left">Cliente</th>
                       <th className="px-4 py-2 text-left">Vencimento</th>
                       <th className="px-4 py-2 text-left">Valor</th>
@@ -86,17 +85,17 @@ export default function InadimplenciaPage() {
                   </thead>
                   <tbody>
                     {invoices.map((inv) => (
-                      <tr key={inv.id} className="border-b border-gray-50 hover:bg-gray-50">
+                      <tr key={inv.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
                         <td className="px-4 py-2.5">
-                          <div className="font-medium text-gray-800">{inv.client.name}</div>
+                          <div className="font-medium text-gray-800 dark:text-gray-200">{inv.client.name}</div>
                           <Badge variant={inv.client.status === 'ativo' ? 'success' : 'warning'} className="mt-0.5">
                             {inv.client.status}
                           </Badge>
                         </td>
-                        <td className="px-4 py-2.5 text-gray-500 text-xs">
+                        <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-xs">
                           {formatDateBR(inv.dueDate)}
                         </td>
-                        <td className="px-4 py-2.5 font-medium text-gray-700">
+                        <td className="px-4 py-2.5 font-medium text-gray-700 dark:text-gray-300">
                           {formatCurrency(inv.amount)}
                         </td>
                         <td className="px-4 py-2.5">
@@ -107,7 +106,7 @@ export default function InadimplenciaPage() {
                         <td className="px-4 py-2.5 text-xs">
                           {inv.messageLogs[0] ? (
                             <div>
-                              <span className="font-medium text-purple-600">
+                              <span className="font-medium text-purple-600 dark:text-purple-400">
                                 {stageLabels[inv.messageLogs[0].stage] || inv.messageLogs[0].stage}
                               </span>
                               <div className="text-gray-400">
@@ -118,7 +117,7 @@ export default function InadimplenciaPage() {
                             <span className="text-gray-400">Sem contato</span>
                           )}
                         </td>
-                        <td className="px-4 py-2.5 text-gray-500 text-xs">
+                        <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-xs">
                           {inv.client.whatsapp || inv.client.phone || '—'}
                         </td>
                       </tr>
@@ -128,7 +127,7 @@ export default function InadimplenciaPage() {
               </div>
 
               {pages > 1 && (
-                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100">
+                <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
                   <span className="text-xs text-gray-400">Página {page} de {pages}</span>
                   <div className="flex gap-2">
                     <Button variant="secondary" size="sm" disabled={page <= 1} onClick={() => setPage(page - 1)}>

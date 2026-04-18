@@ -6,9 +6,10 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, TrendingUp, CreditCard,
-  AlertTriangle, GitBranch, Settings, LogOut,
+  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon,
 } from 'lucide-react'
 import { clsx } from 'clsx'
+import { useTheme } from '@/components/theme-provider'
 
 interface UserInfo {
   name: string
@@ -30,6 +31,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [user, setUser] = useState<UserInfo | null>(null)
+  const { theme, toggleTheme } = useTheme()
 
   useEffect(() => {
     fetch('/api/auth/me')
@@ -85,6 +87,13 @@ export default function Sidebar() {
         <div className="px-3 py-1.5 mb-1">
           <p className="text-purple-400 text-xs truncate">{user?.email}</p>
         </div>
+        <button
+          onClick={toggleTheme}
+          className="sidebar-item text-purple-300 hover:text-white w-full mb-1"
+        >
+          {theme === 'light' ? <Moon size={16} /> : <Sun size={16} />}
+          <span>{theme === 'light' ? 'Modo Escuro' : 'Modo Claro'}</span>
+        </button>
         <button onClick={handleLogout} className="sidebar-item text-purple-300 hover:text-white w-full">
           <LogOut size={16} />
           <span>Sair</span>

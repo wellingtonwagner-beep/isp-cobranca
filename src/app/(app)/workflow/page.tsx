@@ -49,7 +49,6 @@ export default function WorkflowPage() {
     setSaving(true)
     setMsg(null)
     try {
-      // Monta objeto com todos os templates customizados atuais + o novo
       const current: Record<string, { mainMessage: string; pixMessage?: string }> = {}
       for (const t of templates) {
         if (t.isCustom) current[t.stage] = { mainMessage: t.mainMessage, pixMessage: t.pixMessage }
@@ -107,8 +106,8 @@ export default function WorkflowPage() {
   return (
     <div>
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Workflow de Cobrança</h1>
-        <p className="text-gray-500 text-sm mt-1">
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Workflow de Cobrança</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
           Fluxo de {STAGES.length} estágios, de D-5 a D+14. Personalize as mensagens para sua empresa.
         </p>
       </div>
@@ -116,7 +115,7 @@ export default function WorkflowPage() {
       {/* Timeline */}
       <Card className="mb-6">
         <CardContent className="py-5">
-          <h2 className="text-sm font-semibold text-gray-700 mb-4">Fluxo de Disparos</h2>
+          <h2 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">Fluxo de Disparos</h2>
           <div className="flex items-center gap-1 flex-wrap">
             {STAGES.map((stage, i) => (
               <div key={stage.stage} className="flex items-center gap-1">
@@ -124,11 +123,11 @@ export default function WorkflowPage() {
                   <div>{stage.shortLabel}</div>
                   <div className="font-normal text-[10px] opacity-80 leading-tight mt-0.5">{stage.label}</div>
                 </div>
-                {i < STAGES.length - 1 && <span className="text-gray-300 text-sm">›</span>}
+                {i < STAGES.length - 1 && <span className="text-gray-300 dark:text-gray-600 text-sm">›</span>}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 text-xs text-gray-600 border-t border-gray-100 pt-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-5 text-xs text-gray-600 dark:text-gray-400 border-t border-gray-100 dark:border-gray-700 pt-4">
             <div><span className="font-semibold">Janela de envio:</span> 08:00 às 20:00</div>
             <div><span className="font-semibold">Dias:</span> Segunda a Sábado</div>
             <div><span className="font-semibold">Anti-duplicata:</span> 1 mensagem por estágio por fatura</div>
@@ -140,12 +139,12 @@ export default function WorkflowPage() {
       {/* Variáveis disponíveis */}
       <Card className="mb-6">
         <CardContent className="py-4">
-          <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Variáveis disponíveis nas mensagens</p>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Variáveis disponíveis nas mensagens</p>
           <div className="flex flex-wrap gap-2">
             {VARS_HELP.map((v) => (
-              <span key={v.var} className="inline-flex items-center gap-1.5 bg-gray-100 rounded px-2 py-1 text-xs">
-                <code className="text-purple-700 font-mono">{v.var}</code>
-                <span className="text-gray-500">{v.desc}</span>
+              <span key={v.var} className="inline-flex items-center gap-1.5 bg-gray-100 dark:bg-gray-700 rounded px-2 py-1 text-xs">
+                <code className="text-purple-700 dark:text-purple-400 font-mono">{v.var}</code>
+                <span className="text-gray-500 dark:text-gray-400">{v.desc}</span>
               </span>
             ))}
           </div>
@@ -153,7 +152,7 @@ export default function WorkflowPage() {
       </Card>
 
       {msg && (
-        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-800'}`}>
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${msg.ok ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'}`}>
           {msg.text}
         </div>
       )}
@@ -176,26 +175,26 @@ export default function WorkflowPage() {
                     </span>
                     <div>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-semibold text-gray-800">{config.label}</h3>
+                        <h3 className="font-semibold text-gray-800 dark:text-gray-200">{config.label}</h3>
                         {t.isCustom && (
-                          <span className="text-[10px] bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded font-medium">
+                          <span className="text-[10px] bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded font-medium">
                             Personalizado
                           </span>
                         )}
                       </div>
                       <div className="flex items-center gap-3 mt-1 flex-wrap">
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-gray-500 dark:text-gray-400">
                           <span className="font-medium">Tom padrão:</span> {config.tone}
                         </span>
                         <span className="flex items-center gap-1 text-xs">
                           {config.hasBoleto
-                            ? <><Check size={11} className="text-green-500" /><span className="text-green-600 font-medium">Boleto</span></>
-                            : <><X size={11} className="text-gray-300" /><span className="text-gray-400">Boleto</span></>}
+                            ? <><Check size={11} className="text-green-500" /><span className="text-green-600 dark:text-green-400 font-medium">Boleto</span></>
+                            : <><X size={11} className="text-gray-300 dark:text-gray-600" /><span className="text-gray-400">Boleto</span></>}
                         </span>
                         <span className="flex items-center gap-1 text-xs">
                           {config.hasPix
-                            ? <><Check size={11} className="text-green-500" /><span className="text-green-600 font-medium">PIX</span></>
-                            : <><X size={11} className="text-gray-300" /><span className="text-gray-400">PIX</span></>}
+                            ? <><Check size={11} className="text-green-500" /><span className="text-green-600 dark:text-green-400 font-medium">PIX</span></>
+                            : <><X size={11} className="text-gray-300 dark:text-gray-600" /><span className="text-gray-400">PIX</span></>}
                         </span>
                       </div>
                     </div>
@@ -225,9 +224,9 @@ export default function WorkflowPage() {
                   /* Editor */
                   <div className="space-y-3">
                     <div>
-                      <label className="text-xs font-semibold text-gray-600 block mb-1">Mensagem principal</label>
+                      <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 block mb-1">Mensagem principal</label>
                       <textarea
-                        className="w-full text-sm border border-gray-200 rounded-lg p-3 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-purple-300 resize-y"
+                        className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg p-3 font-mono leading-relaxed bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-300 resize-y"
                         rows={8}
                         value={draft.mainMessage}
                         onChange={(e) => setDraft({ ...draft, mainMessage: e.target.value })}
@@ -235,11 +234,11 @@ export default function WorkflowPage() {
                     </div>
                     {config.hasPix && (
                       <div>
-                        <label className="text-xs font-semibold text-gray-600 block mb-1">
+                        <label className="text-xs font-semibold text-gray-600 dark:text-gray-400 block mb-1">
                           Mensagem PIX <span className="text-gray-400 font-normal">(enviada separadamente com o código)</span>
                         </label>
                         <textarea
-                          className="w-full text-sm border border-gray-200 rounded-lg p-3 font-mono leading-relaxed focus:outline-none focus:ring-2 focus:ring-purple-300 resize-y"
+                          className="w-full text-sm border border-gray-200 dark:border-gray-600 rounded-lg p-3 font-mono leading-relaxed bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-300 resize-y"
                           rows={3}
                           value={draft.pixMessage}
                           onChange={(e) => setDraft({ ...draft, pixMessage: e.target.value })}
@@ -257,17 +256,17 @@ export default function WorkflowPage() {
                   </div>
                 ) : (
                   /* Preview */
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+                  <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4">
+                    <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2 uppercase tracking-wide">
                       {t.isCustom ? 'Sua mensagem:' : 'Mensagem padrão:'}
                     </p>
-                    <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                    <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-sans leading-relaxed">
                       {t.mainMessage}
                     </pre>
                     {t.pixMessage && (
-                      <div className="border-t border-gray-200 mt-3 pt-3">
+                      <div className="border-t border-gray-200 dark:border-gray-600 mt-3 pt-3">
                         <p className="text-xs text-gray-400 italic mb-1">[mensagem separada com código PIX]</p>
-                        <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans">
+                        <pre className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap font-sans">
                           {t.pixMessage}
                         </pre>
                       </div>
