@@ -49,9 +49,9 @@ export default function Sidebar() {
       {/* Logo / empresa */}
       <div className="flex items-center gap-3 h-16 border-b border-purple-800/40 px-4">
         {user?.logo ? (
-          <img src={user.logo} alt="Logo" className="w-8 h-8 rounded-lg object-contain bg-white/10 p-0.5" />
+          <img src={user.logo} alt="Logo" className="w-9 h-9 rounded-lg object-contain bg-white p-0.5" />
         ) : (
-          <div className="w-8 h-8 rounded-lg bg-purple-700 flex items-center justify-center text-white font-bold text-sm">
+          <div className="w-9 h-9 rounded-lg bg-purple-700 flex items-center justify-center text-white font-bold text-sm">
             {user?.name?.charAt(0) || 'I'}
           </div>
         )}
