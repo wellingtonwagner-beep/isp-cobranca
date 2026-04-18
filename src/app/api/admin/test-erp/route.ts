@@ -18,7 +18,7 @@ export async function GET() {
         return NextResponse.json({ ok: false, message: 'HubSoft não configurado. Preencha todos os campos.' })
       }
 
-      const { clientes, paginacao } = await client.getAllClientes(0, 1)
+      const { paginacao } = await client.getAllClientes(0, 1)
       return NextResponse.json({
         ok: true,
         message: `Conexão com HubSoft OK! ${paginacao.total_registros} clientes encontrados.`,
