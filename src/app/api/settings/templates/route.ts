@@ -10,10 +10,16 @@ export async function GET() {
     const companyId = await getCompanyId()
     if (!companyId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-    const settings = await prisma.companySettings.findUnique({
-      where: { companyId },
-      select: { templatesJson: true },
-    })
+    const [settings, company] = await Promise.all([
+      prisma.companySettings.findUnique({
+        where: { companyId },
+        select: { templatesJson: true, companyWhatsapp: true },
+      }),
+      prisma.company.findUnique({
+        where: { id: companyId },
+        select: { name: true },
+      }),
+    ])
 
     let custom: Record<string, { mainMessage: string; pixMessage?: string }> = {}
     if (settings?.templatesJson) {
@@ -29,6 +35,8 @@ export async function GET() {
         valor: '{valor}',
         link_boleto: '{link_boleto}',
         codigo_pix: '{codigo_pix}',
+        company_name: company?.name || 'sua operadora',
+        company_whatsapp: settings?.companyWhatsapp || '{whatsapp}',
       }
       return {
         stage,
