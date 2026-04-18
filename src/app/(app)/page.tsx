@@ -112,9 +112,9 @@ export default function DashboardPage() {
           <CardContent className="py-5">
             <div className="flex items-center gap-3 mb-3">
               <RefreshCw className="text-purple-600 w-4 h-4" />
-              <h3 className="font-semibold text-gray-800 text-sm">Sincronização SGP</h3>
+              <h3 className="font-semibold text-gray-800 text-sm">Sincronização</h3>
             </div>
-            <p className="text-xs text-gray-500 mb-3">Sincronize clientes e faturas do SGP manualmente.</p>
+            <p className="text-xs text-gray-500 mb-3">Sincronize clientes e faturas do ERP manualmente.</p>
             {syncMsg && (
               <p className="text-xs text-purple-700 bg-purple-50 rounded px-2 py-1 mb-3">{syncMsg}</p>
             )}
