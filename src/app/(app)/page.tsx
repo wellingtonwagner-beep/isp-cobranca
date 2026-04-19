@@ -209,10 +209,7 @@ export default function DashboardPage() {
                   <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={formatCurrencyShort} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#1f2937', border: 'none', borderRadius: '8px', color: '#f3f4f6' }}
-                    formatter={(value, name) => [
-                      `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`,
-                      name === 'inadimplente' ? 'Inadimplente' : 'Recuperado',
-                    ]}
+                    formatter={(value) => `R$ ${Number(value).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`}
                   />
                   <Legend />
                   <Bar dataKey="inadimplente" fill="#f59e0b" radius={[4, 4, 0, 0]} name="Inadimplente" />
