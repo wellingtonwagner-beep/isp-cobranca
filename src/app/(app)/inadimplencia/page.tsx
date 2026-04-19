@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, RefreshCw } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Download, Search, Filter } from 'lucide-react'
 import { formatDateBR, formatCurrency } from '@/lib/utils'
 
 interface InadimplenciaInvoice {
@@ -32,11 +32,19 @@ export default function InadimplenciaPage() {
   const [page, setPage] = useState(1)
   const [pages, setPages] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [q, setQ] = useState('')
+  const [daysRange, setDaysRange] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const res = await fetch(`/api/inadimplencia?page=${page}`)
+      const params = new URLSearchParams({ page: String(page) })
+      if (q) params.set('q', q)
+      if (daysRange === '1-5') { params.set('minDays', '1'); params.set('maxDays', '5') }
+      else if (daysRange === '6-10') { params.set('minDays', '6'); params.set('maxDays', '10') }
+      else if (daysRange === '11-14') { params.set('minDays', '11'); params.set('maxDays', '14') }
+      else if (daysRange === '15+') { params.set('minDays', '15') }
+      const res = await fetch(`/api/inadimplencia?${params}`)
       const data = await res.json()
       setInvoices(data.invoices || [])
       setTotal(data.total || 0)
@@ -44,7 +52,7 @@ export default function InadimplenciaPage() {
     } finally {
       setLoading(false)
     }
-  }, [page])
+  }, [page, q, daysRange])
 
   useEffect(() => { load() }, [load])
 
@@ -55,10 +63,43 @@ export default function InadimplenciaPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Inadimplência</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{total} faturas em atraso</p>
         </div>
-        <Button variant="secondary" size="sm" onClick={load} loading={loading}>
-          <RefreshCw size={14} /> Atualizar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => window.open('/api/export?type=inadimplencia', '_blank')}>
+            <Download size={14} /> Exportar CSV
+          </Button>
+          <Button variant="secondary" size="sm" onClick={load} loading={loading}>
+            <RefreshCw size={14} /> Atualizar
+          </Button>
+        </div>
       </div>
+
+      <Card className="mb-5">
+        <CardContent className="py-3 flex gap-3 flex-wrap">
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <Search size={14} className="text-gray-400" />
+            <input
+              className="flex-1 text-sm outline-none bg-transparent placeholder-gray-400 dark:text-gray-200"
+              placeholder="Buscar por nome do cliente..."
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1) }}
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <Filter size={14} className="text-gray-400" />
+            <select
+              className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+              value={daysRange}
+              onChange={(e) => { setDaysRange(e.target.value); setPage(1) }}
+            >
+              <option value="">Todos os dias</option>
+              <option value="1-5">1 a 5 dias</option>
+              <option value="6-10">6 a 10 dias</option>
+              <option value="11-14">11 a 14 dias</option>
+              <option value="15+">15+ dias</option>
+            </select>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-0">

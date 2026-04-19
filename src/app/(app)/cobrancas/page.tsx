@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { MessageSquare, CheckCircle, XCircle, Clock, RefreshCw } from 'lucide-react'
+import { MessageSquare, CheckCircle, XCircle, Clock, RefreshCw, Download, Filter } from 'lucide-react'
 import { formatDateBR, formatCurrency } from '@/lib/utils'
 
 interface CobrancaLog {
@@ -43,6 +43,8 @@ export default function CobrancasPage() {
   const [data, setData] = useState<CobrancaData | null>(null)
   const [loading, setLoading] = useState(true)
   const [triggering, setTriggering] = useState(false)
+  const [filterStage, setFilterStage] = useState('')
+  const [filterStatus, setFilterStatus] = useState('')
 
   async function load() {
     setLoading(true)
@@ -79,6 +81,9 @@ export default function CobrancasPage() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Gestão completa dos disparos de cobrança via WhatsApp</p>
         </div>
         <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => window.open('/api/export?type=cobrancas', '_blank')}>
+            <Download size={14} /> Exportar CSV
+          </Button>
           <Button variant="secondary" size="sm" onClick={load} loading={loading}>
             <RefreshCw size={14} /> Atualizar
           </Button>
@@ -146,7 +151,39 @@ export default function CobrancasPage() {
         </Card>
       )}
 
-      {/* Histórico de Envios */}
+      {/* Filtros + Histórico de Envios */}
+      <Card className="mb-5">
+        <CardContent className="py-3 flex gap-3 flex-wrap items-center">
+          <Filter size={14} className="text-gray-400" />
+          <select
+            className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+            value={filterStage}
+            onChange={(e) => setFilterStage(e.target.value)}
+          >
+            <option value="">Todos os estágios</option>
+            <option value="D_MINUS_5">D-5</option>
+            <option value="D_MINUS_2">D-2</option>
+            <option value="D_ZERO">D-0</option>
+            <option value="D_PLUS_1">D+1</option>
+            <option value="D_PLUS_5">D+5</option>
+            <option value="D_PLUS_10">D+10</option>
+            <option value="D_PLUS_14">D+14</option>
+          </select>
+          <select
+            className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+          >
+            <option value="">Todos os status</option>
+            <option value="sent">Enviado</option>
+            <option value="blocked_test">Bloqueado (teste)</option>
+            <option value="failed">Falhou</option>
+            <option value="skipped_paid">Já pago</option>
+            <option value="skipped_no_phone">Sem telefone</option>
+          </select>
+        </CardContent>
+      </Card>
+
       <Card>
         <div className="px-5 py-3 border-b border-purple-50 dark:border-gray-700">
           <h2 className="font-semibold text-gray-800 dark:text-gray-200">Histórico de Envios</h2>
@@ -159,7 +196,17 @@ export default function CobrancasPage() {
             <div className="py-12 text-center text-gray-400 text-sm">
               Nenhum envio registrado nos últimos 7 dias.
             </div>
-          ) : (
+          ) : (() => {
+            const filtered = data.recentLogs.filter((log) => {
+              if (filterStage && log.stage !== filterStage) return false
+              if (filterStatus && log.status !== filterStatus) return false
+              return true
+            })
+            return filtered.length === 0 ? (
+              <div className="py-12 text-center text-gray-400 text-sm">
+                Nenhum envio encontrado com os filtros selecionados.
+              </div>
+            ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -173,7 +220,7 @@ export default function CobrancasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.recentLogs.map((log) => {
+                  {filtered.map((log) => {
                     const sc = statusConfig[log.status] || { label: log.status, variant: 'muted' as const }
                     return (
                       <tr key={log.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
@@ -207,7 +254,8 @@ export default function CobrancasPage() {
                 </tbody>
               </table>
             </div>
-          )}
+            )
+          })()}
         </CardContent>
       </Card>
     </div>

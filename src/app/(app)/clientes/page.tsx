@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle } from 'lucide-react'
+import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle, Download } from 'lucide-react'
 
 interface Client {
   id: string
@@ -172,9 +172,14 @@ export default function ClientesPage() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Clientes</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{total} clientes cadastrados</p>
         </div>
-        <Button size="sm" onClick={syncClients} loading={syncing}>
-          <RefreshCw size={14} /> Sincronizar
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" size="sm" onClick={() => window.open('/api/export?type=clientes', '_blank')}>
+            <Download size={14} /> Exportar CSV
+          </Button>
+          <Button size="sm" onClick={syncClients} loading={syncing}>
+            <RefreshCw size={14} /> Sincronizar
+          </Button>
+        </div>
       </div>
 
       {syncMsg && (

@@ -15,10 +15,26 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const limit = 50
 
-    const where = {
+    const minDays = parseInt(searchParams.get('minDays') || '0')
+    const maxDays = searchParams.get('maxDays') ? parseInt(searchParams.get('maxDays')!) : null
+    const q = searchParams.get('q') || ''
+
+    const dueDateFilter: Record<string, Date> = { lt: todayDate }
+    if (minDays > 0) {
+      dueDateFilter.lte = new Date(todayDate.getTime() - minDays * 86400000)
+    }
+    if (maxDays !== null) {
+      dueDateFilter.gte = new Date(todayDate.getTime() - maxDays * 86400000)
+    }
+
+    const where: Record<string, unknown> = {
       companyId,
-      status: { in: ['aberta', 'vencida'] as string[] },
-      dueDate: { lt: todayDate },
+      status: { in: ['aberta', 'vencida'] },
+      dueDate: dueDateFilter,
+    }
+
+    if (q) {
+      where.client = { name: { contains: q, mode: 'insensitive' } }
     }
 
     const [invoices, total] = await Promise.all([
