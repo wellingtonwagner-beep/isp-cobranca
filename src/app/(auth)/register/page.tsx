@@ -140,7 +140,7 @@ export default function RegisterPage() {
               value={form.name}
               onChange={handleChange}
               required
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="Ultra Net Telecom"
             />
           </div>
@@ -154,7 +154,7 @@ export default function RegisterPage() {
               onChange={handleChange}
               required
               inputMode="numeric"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="00.000.000/0000-00"
             />
           </div>
@@ -167,7 +167,7 @@ export default function RegisterPage() {
               value={form.email}
               onChange={handleChange}
               required
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
               placeholder="contato@suaempresa.com"
             />
           </div>
@@ -181,7 +181,7 @@ export default function RegisterPage() {
                 value={form.password}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="mín. 8 chars"
               />
             </div>
@@ -193,7 +193,7 @@ export default function RegisterPage() {
                 value={form.confirmPassword}
                 onChange={handleChange}
                 required
-                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="••••••••"
               />
             </div>
