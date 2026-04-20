@@ -43,6 +43,7 @@ export default function CobrancasPage() {
   const [data, setData] = useState<CobrancaData | null>(null)
   const [loading, setLoading] = useState(true)
   const [triggering, setTriggering] = useState(false)
+  const [triggerMsg, setTriggerMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [filterStage, setFilterStage] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
 
@@ -60,10 +61,25 @@ export default function CobrancasPage() {
   }
 
   async function triggerCron() {
+    if (triggering) return
+    if (!confirm('Disparar cobranças agora? Isso pode levar alguns minutos dependendo do volume. Não recarregue a página nem clique novamente.')) return
     setTriggering(true)
+    setTriggerMsg(null)
     try {
-      await fetch('/api/admin/cron', { method: 'POST' })
+      const res = await fetch('/api/admin/cron', { method: 'POST' })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setTriggerMsg({ ok: false, text: data.error || `Erro ${res.status}` })
+      } else {
+        const r = data.result
+        setTriggerMsg({
+          ok: true,
+          text: `Disparo concluído: ${r?.totalSent || 0} enviadas, ${r?.totalSkipped || 0} puladas, ${r?.totalErrors || 0} erros.`,
+        })
+      }
       await load()
+    } catch (err) {
+      setTriggerMsg({ ok: false, text: String(err) })
     } finally {
       setTriggering(false)
     }
@@ -92,6 +108,19 @@ export default function CobrancasPage() {
           </Button>
         </div>
       </div>
+
+      {triggerMsg && (
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${triggerMsg.ok ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'}`}>
+          {triggerMsg.text}
+        </div>
+      )}
+
+      {triggering && (
+        <div className="mb-4 px-4 py-3 rounded-lg text-sm bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          Disparando cobranças... Aguarde, isso pode levar alguns minutos.
+        </div>
+      )}
 
       {/* Cards de resumo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">

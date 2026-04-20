@@ -22,11 +22,49 @@ export async function dispatchMessage(
   options?: { force?: boolean },
 ): Promise<DispatchResult> {
   // 1. Anti-duplicata (ignorada quando force=true)
+  //    Cria log "pending" imediatamente para bloquear execuções concorrentes.
+  //    Se outra execução já criou o log, P2002 é lançado -> retorna blocked_duplicate.
+  let pendingLogId: string | null = null
   if (!options?.force) {
-    const existing = await prisma.messageLog.findUnique({
-      where: { invoiceId_stage: { invoiceId: invoice.id, stage } },
+    try {
+      const pendingLog = await prisma.messageLog.create({
+        data: {
+          companyId: client.companyId,
+          clientId: client.id,
+          invoiceId: invoice.id,
+          stage,
+          whatsappTo: client.whatsapp || '',
+          messageBody: '',
+          status: 'pending',
+          testMode,
+        },
+      })
+      pendingLogId = pendingLog.id
+    } catch (err: unknown) {
+      const error = err as { code?: string }
+      if (error?.code === 'P2002') return { status: 'blocked_duplicate' }
+      throw err
+    }
+
+    // 1b. Safety net adicional: se cliente já recebeu mensagem 'sent' HOJE, pula
+    //     (protege contra duplicatas mesmo em estágios diferentes no mesmo dia)
+    const todayStart = new Date()
+    todayStart.setHours(0, 0, 0, 0)
+    const sentToday = await prisma.messageLog.findFirst({
+      where: {
+        clientId: client.id,
+        status: 'sent',
+        sentAt: { gte: todayStart },
+        id: { not: pendingLogId },
+      },
     })
-    if (existing) return { status: 'blocked_duplicate' }
+    if (sentToday) {
+      await prisma.messageLog.update({
+        where: { id: pendingLogId },
+        data: { status: 'blocked_duplicate', errorMessage: 'Cliente já recebeu mensagem hoje' },
+      })
+      return { status: 'blocked_duplicate' }
+    }
   } else {
     // Em envio forçado (manual), remove log antigo para permitir novo envio
     await prisma.messageLog.deleteMany({
@@ -36,7 +74,14 @@ export async function dispatchMessage(
 
   // 2. Verifica número de WhatsApp
   if (!client.whatsapp) {
-    await logMessage(client, invoice, stage, '', '', undefined, 'skipped_no_phone', testMode)
+    if (pendingLogId) {
+      await prisma.messageLog.update({
+        where: { id: pendingLogId },
+        data: { status: 'skipped_no_phone' },
+      })
+    } else {
+      await logMessage(client, invoice, stage, '', '', undefined, 'skipped_no_phone', testMode)
+    }
     return { status: 'skipped_no_phone' }
   }
 
@@ -54,15 +99,34 @@ export async function dispatchMessage(
 
   const { mainMessage, pixMessage } = renderTemplate(stage, vars, customTemplates)
 
+  // Helper: atualiza o pending log OU cria novo (caso force=true)
+  async function finalizeLog(status: MessageStatus, msgId?: string, errorMessage?: string) {
+    if (pendingLogId) {
+      await prisma.messageLog.update({
+        where: { id: pendingLogId },
+        data: {
+          messageBody: mainMessage,
+          pixBody: pixMessage || null,
+          status,
+          evolutionMsgId: msgId || null,
+          errorMessage: errorMessage || null,
+          sentAt: new Date(),
+        },
+      })
+    } else {
+      await logMessage(client, invoice, stage, mainMessage, pixMessage, msgId, status, testMode, errorMessage)
+    }
+  }
+
   // 4. Modo teste
   if (testMode) {
-    await logMessage(client, invoice, stage, mainMessage, pixMessage, undefined, 'blocked_test', testMode)
+    await finalizeLog('blocked_test')
     return { status: 'blocked_test' }
   }
 
   // 5. Verifica se evolution está configurado
   if (!evolutionClient) {
-    await logMessage(client, invoice, stage, mainMessage, pixMessage, undefined, 'failed', testMode, 'Evolution API não configurada')
+    await finalizeLog('failed', undefined, 'Evolution API não configurada')
     return { status: 'failed', error: 'Evolution API não configurada' }
   }
 
@@ -77,11 +141,11 @@ export async function dispatchMessage(
       if (pixRes.key?.id) msgIds += `,${pixRes.key.id}`
     }
 
-    await logMessage(client, invoice, stage, mainMessage, pixMessage, msgIds, 'sent', testMode)
+    await finalizeLog('sent', msgIds)
     return { status: 'sent', evolutionMsgId: msgIds }
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err)
-    await logMessage(client, invoice, stage, mainMessage, pixMessage, undefined, 'failed', testMode, errorMsg)
+    await finalizeLog('failed', undefined, errorMsg)
     return { status: 'failed', error: errorMsg }
   }
 }

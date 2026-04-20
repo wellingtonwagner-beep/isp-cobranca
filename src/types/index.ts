@@ -8,6 +8,7 @@ export type Stage =
   | 'D_PLUS_14'
 
 export type MessageStatus =
+  | 'pending'
   | 'sent'
   | 'failed'
   | 'blocked_test'
