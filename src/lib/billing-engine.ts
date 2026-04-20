@@ -65,6 +65,24 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
     }
   }
 
+  // Clientes com faturas em atraso há mais de 60 dias entram em fluxo manual
+  // (negativação, jurídico, suspensão) — não disparamos cobrança automatica.
+  const cutoffDate = addDaysBRT(parseDate(today), -60)
+  const cutoffDateStr = dateToBRTString(cutoffDate)
+  const blockedInvoices = await prisma.invoice.findMany({
+    where: {
+      companyId,
+      status: { not: 'paga' },
+      dueDate: { lt: new Date(`${cutoffDateStr}T00:00:00.000Z`) },
+    },
+    select: { clientId: true },
+    distinct: ['clientId'],
+  })
+  const blockedClientIds = new Set(blockedInvoices.map((i) => i.clientId))
+  if (blockedClientIds.size > 0) {
+    console.log(`[BillingEngine][${companyId}] ${blockedClientIds.size} cliente(s) com atraso >60d — disparo bloqueado.`)
+  }
+
   for (const stageConfig of STAGES) {
     const targetDate = addDaysBRT(parseDate(today), -stageConfig.dayOffset)
     const targetDateStr = dateToBRTString(targetDate)
@@ -90,6 +108,12 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
     }
 
     for (const invoice of invoices) {
+      // Cliente com qualquer fatura em atraso >60d: pula sem consultar ERP.
+      if (blockedClientIds.has(invoice.clientId)) {
+        stageResult.skipped++
+        continue
+      }
+
       // Valida pagamento em tempo real no ERP antes de enviar qualquer cobrança.
       // Protege contra disparos indevidos quando o sync local está desatualizado.
       if (invoice.client.cpfCnpj && (sgpClient || hubsoftClient)) {
