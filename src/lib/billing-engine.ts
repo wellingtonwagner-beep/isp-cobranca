@@ -90,15 +90,13 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
     }
 
     for (const invoice of invoices) {
-      // D+0: valida pagamento em tempo real no ERP
-      if (stageConfig.stage === 'D_ZERO' && invoice.client.cpfCnpj) {
-        let paid = false
+      // Valida pagamento em tempo real no ERP antes de enviar qualquer cobrança.
+      // Protege contra disparos indevidos quando o sync local está desatualizado.
+      if (invoice.client.cpfCnpj && (sgpClient || hubsoftClient)) {
         try {
-          if (sgpClient) {
-            paid = await sgpClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
-          } else if (hubsoftClient) {
-            paid = await hubsoftClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
-          }
+          const paid = sgpClient
+            ? await sgpClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
+            : await hubsoftClient!.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
           if (paid) {
             await prisma.invoice.update({
               where: { id: invoice.id },
