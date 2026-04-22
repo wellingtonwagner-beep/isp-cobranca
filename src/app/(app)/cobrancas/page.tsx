@@ -14,6 +14,7 @@ interface CobrancaLog {
   whatsappTo: string
   testMode: boolean
   sentAt: string
+  errorMessage?: string | null
   client: { name: string; whatsapp: string }
   invoice: { amount: number; dueDate: string }
 }
@@ -269,9 +270,16 @@ export default function CobrancasPage() {
                           {log.invoice?.dueDate ? formatDateBR(log.invoice.dueDate) : '—'}
                         </td>
                         <td className="px-4 py-2.5">
-                          <Badge variant={sc.variant}>{sc.label}</Badge>
+                          <span title={log.errorMessage || undefined}>
+                            <Badge variant={sc.variant}>{sc.label}</Badge>
+                          </span>
                           {log.testMode && (
                             <Badge variant="info" className="ml-1">teste</Badge>
+                          )}
+                          {log.errorMessage && (
+                            <div className="text-xs text-red-600 dark:text-red-400 mt-1 max-w-xs truncate" title={log.errorMessage}>
+                              {log.errorMessage}
+                            </div>
                           )}
                         </td>
                         <td className="px-4 py-2.5 text-gray-400 text-xs">
