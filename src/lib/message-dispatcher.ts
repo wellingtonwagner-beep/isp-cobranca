@@ -45,26 +45,9 @@ export async function dispatchMessage(
       if (error?.code === 'P2002') return { status: 'blocked_duplicate' }
       throw err
     }
-
-    // 1b. Safety net adicional: se cliente já recebeu mensagem 'sent' HOJE, pula
-    //     (protege contra duplicatas mesmo em estágios diferentes no mesmo dia)
-    const todayStart = new Date()
-    todayStart.setHours(0, 0, 0, 0)
-    const sentToday = await prisma.messageLog.findFirst({
-      where: {
-        clientId: client.id,
-        status: 'sent',
-        sentAt: { gte: todayStart },
-        id: { not: pendingLogId },
-      },
-    })
-    if (sentToday) {
-      await prisma.messageLog.update({
-        where: { id: pendingLogId },
-        data: { status: 'blocked_duplicate', errorMessage: 'Cliente já recebeu mensagem hoje' },
-      })
-      return { status: 'blocked_duplicate' }
-    }
+    // Faturas diferentes do mesmo cliente PODEM receber mensagens no mesmo dia.
+    // A constraint @@unique([invoiceId, stage]) ja impede duplicar a mesma fatura
+    // no mesmo estagio; o lock de /api/admin/cron impede cliques duplos no Disparar.
   } else {
     // Em envio forçado (manual), remove log antigo para permitir novo envio
     await prisma.messageLog.deleteMany({
