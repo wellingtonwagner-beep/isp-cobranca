@@ -6,25 +6,35 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, TrendingUp, CreditCard,
-  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon, FileBarChart,
+  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon, FileBarChart, Shield,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useTheme } from '@/components/theme-provider'
+import { hasFeature, type Feature, type Plan, PLAN_LABELS } from '@/lib/plans'
 
 interface UserInfo {
   name: string
   email: string
   logo?: string | null
+  plan?: Plan
+  isSuperAdmin?: boolean
 }
 
-const navItems = [
-  { href: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/clientes', label: 'Clientes', icon: Users },
-  { href: '/growth', label: 'Growth', icon: TrendingUp },
-  { href: '/cobrancas', label: 'Cobranças', icon: CreditCard },
-  { href: '/inadimplencia', label: 'Inadimplência', icon: AlertTriangle },
-  { href: '/relatorios/diario', label: 'Relatório Diário', icon: FileBarChart },
-  { href: '/workflow', label: 'Workflow', icon: GitBranch },
+interface NavItem {
+  href: string
+  label: string
+  icon: React.ElementType
+  feature?: Feature
+}
+
+const navItems: NavItem[] = [
+  { href: '/', label: 'Dashboard', icon: LayoutDashboard, feature: 'dashboard' },
+  { href: '/clientes', label: 'Clientes', icon: Users, feature: 'sync_erp' },
+  { href: '/growth', label: 'Growth', icon: TrendingUp, feature: 'dashboard' },
+  { href: '/cobrancas', label: 'Cobranças', icon: CreditCard, feature: 'regua_basica' },
+  { href: '/inadimplencia', label: 'Inadimplência', icon: AlertTriangle, feature: 'regua_basica' },
+  { href: '/relatorios/diario', label: 'Relatório Diário', icon: FileBarChart, feature: 'relatorio_diario' },
+  { href: '/workflow', label: 'Workflow', icon: GitBranch, feature: 'regua_basica' },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
 
@@ -47,6 +57,8 @@ export default function Sidebar() {
     router.refresh()
   }
 
+  const visibleItems = navItems.filter((item) => !item.feature || hasFeature(user?.plan, item.feature))
+
   return (
     <aside className="fixed left-0 top-0 h-full w-52 bg-[#1e1b4b] flex flex-col z-50">
       {/* Logo / empresa */}
@@ -62,13 +74,15 @@ export default function Sidebar() {
           <p className="text-white font-bold text-sm leading-tight truncate">
             {user?.name || 'ISP Cobrança'}
           </p>
-          <p className="text-purple-400 text-xs truncate">Sistema de Cobranças</p>
+          <p className="text-purple-400 text-xs truncate">
+            Plano {user?.plan ? PLAN_LABELS[user.plan] : 'Lite'}
+          </p>
         </div>
       </div>
 
       {/* Nav */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ href, label, icon: Icon }) => {
+        {visibleItems.map(({ href, label, icon: Icon }) => {
           const isActive = pathname === href || (href !== '/' && pathname.startsWith(href))
           return (
             <Link
@@ -81,6 +95,15 @@ export default function Sidebar() {
             </Link>
           )
         })}
+        {user?.isSuperAdmin && (
+          <Link
+            href="/admin/empresas"
+            className={clsx('sidebar-item', pathname.startsWith('/admin') ? 'active' : 'text-amber-300')}
+          >
+            <Shield size={16} />
+            <span>Admin</span>
+          </Link>
+        )}
       </nav>
 
       {/* Footer */}
