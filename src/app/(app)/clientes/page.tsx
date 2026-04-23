@@ -64,6 +64,7 @@ export default function ClientesPage() {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [syncCountdown, setSyncCountdown] = useState(0)
 
   const [sendModalClient, setSendModalClient] = useState<Client | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
@@ -106,7 +107,12 @@ export default function ClientesPage() {
         setSyncMsg({ ok: false, text: data.error || `Erro ${res.status}` })
       } else {
         setSyncMsg({ ok: true, text: data.message || 'Sync iniciado.' })
-        setTimeout(() => load(), 90_000)
+        setSyncCountdown(120)
+        setTimeout(async () => {
+          await load()
+          setSyncMsg(null)
+          setSyncCountdown(0)
+        }, 120_000)
       }
     } catch (e) {
       setSyncMsg({ ok: false, text: String(e) })
@@ -114,6 +120,13 @@ export default function ClientesPage() {
       setSyncing(false)
     }
   }
+
+  // Contador regressivo do auto-refresh
+  useEffect(() => {
+    if (syncCountdown <= 0) return
+    const t = setInterval(() => setSyncCountdown((s) => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [syncCountdown])
 
   async function openSendModal(client: Client) {
     setSendModalClient(client)
@@ -183,8 +196,13 @@ export default function ClientesPage() {
       </div>
 
       {syncMsg && (
-        <div className={`mb-4 px-4 py-3 rounded-lg text-sm ${syncMsg.ok ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'}`}>
-          {syncMsg.text}
+        <div className={`mb-4 px-4 py-3 rounded-lg text-sm flex items-center justify-between gap-3 ${syncMsg.ok ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-300'}`}>
+          <span>{syncMsg.text}</span>
+          {syncMsg.ok && syncCountdown > 0 && (
+            <span className="text-xs font-medium opacity-80 whitespace-nowrap">
+              Atualizando em {Math.floor(syncCountdown / 60)}:{String(syncCountdown % 60).padStart(2, '0')}
+            </span>
+          )}
         </div>
       )}
 
