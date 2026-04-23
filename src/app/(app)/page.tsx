@@ -50,6 +50,7 @@ export default function DashboardPage() {
   })
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
+  const [syncCountdown, setSyncCountdown] = useState(0)
 
   const load = useCallback(async () => {
     const [dashRes, analyticsRes] = await Promise.all([
@@ -71,8 +72,22 @@ export default function DashboardPage() {
     })
     const d = await res.json().catch(() => ({}))
     setSyncMsg(d.message || d.error || (res.ok ? 'Sync iniciado.' : `Erro ${res.status}`))
-    if (res.ok) setTimeout(() => load(), 90_000)
+    if (res.ok) {
+      setSyncCountdown(120)
+      setTimeout(async () => {
+        await load()
+        setSyncMsg(null)
+        setSyncCountdown(0)
+      }, 120_000)
+    }
   }
+
+  // Contador regressivo do auto-refresh do sync
+  useEffect(() => {
+    if (syncCountdown <= 0) return
+    const t = setInterval(() => setSyncCountdown((s) => Math.max(0, s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [syncCountdown])
 
   const recoveryRate = analytics && (analytics.summary.totalRecovered + analytics.summary.totalOpen > 0)
     ? ((analytics.summary.totalRecovered / (analytics.summary.totalRecovered + analytics.summary.totalOpen)) * 100).toFixed(1)
@@ -341,7 +356,14 @@ export default function DashboardPage() {
             </div>
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Sincronize clientes e faturas do ERP manualmente.</p>
             {syncMsg && (
-              <p className="text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded px-2 py-1 mb-3">{syncMsg}</p>
+              <p className="text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded px-2 py-1 mb-3 flex items-center justify-between gap-2">
+                <span>{syncMsg}</span>
+                {syncCountdown > 0 && (
+                  <span className="opacity-80 whitespace-nowrap font-medium">
+                    {Math.floor(syncCountdown / 60)}:{String(syncCountdown % 60).padStart(2, '0')}
+                  </span>
+                )}
+              </p>
             )}
             <div className="flex gap-2">
               <button
