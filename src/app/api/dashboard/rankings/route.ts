@@ -46,17 +46,19 @@ export async function GET(req: NextRequest) {
       limit,
     )
 
-    // ── Devedores: faturas em aberto/vencida com vencimento nos ultimos 12 meses ──
+    // ── Devedores: SOMENTE faturas em ATRASO (dueDate < hoje, nao pagas) ──
+    //    Faturas a vencer no futuro nao entram no ranking de devedores.
+    const now = new Date()
     const openInvoices = await prisma.invoice.findMany({
       where: {
         companyId,
         status: { in: ['aberta', 'vencida'] },
-        dueDate: { gte: since },
+        dueDate: { gte: since, lt: now },
       },
       select: { clientId: true, amount: true, dueDate: true },
     })
 
-    const today = Date.now()
+    const today = now.getTime()
     const principaisDevedores = aggregate(
       openInvoices.map((i) => ({
         clientId: i.clientId,
