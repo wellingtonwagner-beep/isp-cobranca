@@ -373,6 +373,7 @@ export default function DashboardPage() {
             pmrLabel="PMR"
             pmrTooltip="Prazo Médio de Recebimento (dias entre vencimento e pagamento)"
             emptyText="Nenhum pagamento registrado nos últimos 12 meses."
+            valueColor="text-green-600 dark:text-green-400"
           />
           <RankingCard
             title="Principais devedores"
@@ -381,6 +382,7 @@ export default function DashboardPage() {
             pmrLabel="Atraso"
             pmrTooltip="Média de dias em atraso desde o vencimento"
             emptyText="Nenhum cliente com débito em aberto nos últimos 12 meses."
+            valueColor="text-red-600 dark:text-red-400"
           />
         </div>
       )}
@@ -462,7 +464,7 @@ function formatCurrencyBR(v: number): string {
 }
 
 function RankingCard({
-  title, subtitle, data, pmrLabel, pmrTooltip, emptyText,
+  title, subtitle, data, pmrLabel, pmrTooltip, emptyText, valueColor,
 }: {
   title: string
   subtitle: string
@@ -470,6 +472,7 @@ function RankingCard({
   pmrLabel: string
   pmrTooltip: string
   emptyText: string
+  valueColor: string
 }) {
   return (
     <Card>
@@ -499,7 +502,7 @@ function RankingCard({
                       {r.clientName}
                     </Link>
                   </td>
-                  <td className="px-2 py-2 text-right text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatCurrencyBR(r.total)}</td>
+                  <td className={`px-2 py-2 text-right font-semibold whitespace-nowrap ${valueColor}`}>{formatCurrencyBR(r.total)}</td>
                   <td className="px-2 py-2 text-right text-gray-500">{r.percent}%</td>
                   <td className="px-2 py-2 text-right text-gray-500">{r.count}</td>
                   <td className="px-3 py-2 text-right text-gray-500">{r.pmrDays}d</td>
@@ -508,7 +511,7 @@ function RankingCard({
               {data.outros.total > 0 && (
                 <tr className="bg-gray-50/60 dark:bg-gray-800/40 text-gray-500">
                   <td className="px-4 py-2 italic">Demais</td>
-                  <td className="px-2 py-2 text-right whitespace-nowrap">{formatCurrencyBR(data.outros.total)}</td>
+                  <td className={`px-2 py-2 text-right font-medium whitespace-nowrap ${valueColor} opacity-70`}>{formatCurrencyBR(data.outros.total)}</td>
                   <td className="px-2 py-2 text-right">{data.outros.percent}%</td>
                   <td className="px-2 py-2 text-right">{data.outros.count}</td>
                   <td className="px-3 py-2 text-right">—</td>
