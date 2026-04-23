@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle, PhoneOff, Copy, FlaskConical, CircleDollarSign, Download, RefreshCw, Send } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
 
-const RETRYABLE_STATUS = new Set(['failed', 'blocked_duplicate', 'blocked_window', 'blocked_holiday'])
+const RETRYABLE_STATUS = new Set(['failed', 'blocked_duplicate', 'blocked_window', 'blocked_holiday', 'skipped_no_phone'])
 
 interface LogEntry {
   id: string
@@ -17,8 +17,17 @@ interface LogEntry {
   testMode: boolean
   sentAt: string
   errorMessage?: string | null
-  client: { name: string; whatsapp: string }
+  client: { name: string; whatsapp: string | null }
   invoice: { amount: number; dueDate: string }
+}
+
+const STATUS_WITH_PHONE_REQUIRED = new Set(['skipped_no_phone'])
+
+function canRetryLog(log: LogEntry): boolean {
+  if (!RETRYABLE_STATUS.has(log.status)) return false
+  // Para 'skipped_no_phone', so eh retentavel se o cliente JA TEM WhatsApp cadastrado agora
+  if (STATUS_WITH_PHONE_REQUIRED.has(log.status) && !log.client?.whatsapp) return false
+  return true
 }
 
 interface ReportData {
@@ -97,7 +106,7 @@ export default function RelatorioDiarioPage() {
 
   function selectAllRetryable() {
     if (!data) return
-    const ids = data.failedLogs.filter((l) => RETRYABLE_STATUS.has(l.status)).map((l) => l.id)
+    const ids = data.failedLogs.filter((l) => canRetryLog(l)).map((l) => l.id)
     setSelected(new Set(ids))
   }
 
@@ -105,7 +114,7 @@ export default function RelatorioDiarioPage() {
 
   async function resend(all: boolean) {
     if (!data) return
-    const retryableLogs = data.failedLogs.filter((l) => RETRYABLE_STATUS.has(l.status))
+    const retryableLogs = data.failedLogs.filter((l) => canRetryLog(l))
     const ids = all ? retryableLogs.map((l) => l.id) : Array.from(selected)
     if (ids.length === 0) {
       setResendMsg({ ok: false, text: 'Selecione ao menos uma mensagem para reenviar.' })
@@ -201,7 +210,7 @@ export default function RelatorioDiarioPage() {
               Falhas, sem telefone e duplicadas{selected.size > 0 ? ` — ${selected.size} selecionada(s)` : ''}
             </p>
           </div>
-          {data?.failedLogs && data.failedLogs.some((l) => RETRYABLE_STATUS.has(l.status)) && (
+          {data?.failedLogs && data.failedLogs.some((l) => canRetryLog(l)) && (
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={selectAllRetryable}
@@ -257,7 +266,8 @@ export default function RelatorioDiarioPage() {
                 <tbody>
                   {data.failedLogs.map((log) => {
                     const sc = statusConfig[log.status] || { label: log.status, variant: 'muted' as const }
-                    const canRetry = RETRYABLE_STATUS.has(log.status)
+                    const canRetry = canRetryLog(log)
+                    const phoneNowAvailable = log.status === 'skipped_no_phone' && log.client?.whatsapp
                     return (
                       <tr key={log.id} className={`border-b border-gray-50 dark:border-gray-700/50 ${selected.has(log.id) ? 'bg-purple-50/40 dark:bg-purple-900/10' : ''}`}>
                         <td className="px-3 py-2.5 text-center">
@@ -268,13 +278,20 @@ export default function RelatorioDiarioPage() {
                               onChange={() => toggleSelect(log.id)}
                               disabled={resending}
                               className="rounded"
+                              title={phoneNowAvailable ? 'WhatsApp foi cadastrado depois — pronto para reenviar' : undefined}
                             />
                           ) : (
-                            <span className="text-gray-300 dark:text-gray-700 text-xs" title="Sem telefone — não pode reenviar">—</span>
+                            <span className="text-gray-300 dark:text-gray-700 text-xs" title="Cliente ainda sem WhatsApp cadastrado">—</span>
                           )}
                         </td>
                         <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-200">{log.client?.name}</td>
-                        <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-xs">{log.whatsappTo || '—'}</td>
+                        <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-xs">
+                          {log.whatsappTo || (
+                            log.client?.whatsapp
+                              ? <span className="text-green-600 dark:text-green-400" title="Cadastrado depois do envio">{log.client.whatsapp} ✓</span>
+                              : '—'
+                          )}
+                        </td>
                         <td className="px-4 py-2.5">
                           <span className="text-xs font-bold bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded">
                             {stageLabels[log.stage] || log.stage}

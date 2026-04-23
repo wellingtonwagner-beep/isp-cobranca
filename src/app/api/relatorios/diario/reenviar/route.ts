@@ -21,7 +21,7 @@ import { createEvolutionClient } from '@/lib/evolution'
 import { CustomTemplates } from '@/lib/templates'
 import type { Stage } from '@/types'
 
-const RETRYABLE = ['failed', 'blocked_duplicate', 'blocked_window', 'blocked_holiday']
+const RETRYABLE = ['failed', 'blocked_duplicate', 'blocked_window', 'blocked_holiday', 'skipped_no_phone']
 
 export async function POST(req: NextRequest) {
   try {
