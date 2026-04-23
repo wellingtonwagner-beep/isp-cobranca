@@ -4,8 +4,10 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CheckCircle, XCircle, PhoneOff, Copy, FlaskConical, CircleDollarSign, Download, RefreshCw } from 'lucide-react'
+import { CheckCircle, XCircle, PhoneOff, Copy, FlaskConical, CircleDollarSign, Download, RefreshCw, Send } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+
+const RETRYABLE_STATUS = new Set(['failed', 'blocked_duplicate', 'blocked_window', 'blocked_holiday'])
 
 interface LogEntry {
   id: string
@@ -62,9 +64,14 @@ export default function RelatorioDiarioPage() {
   const [date, setDate] = useState(todayStr())
   const [data, setData] = useState<ReportData | null>(null)
   const [loading, setLoading] = useState(true)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [resending, setResending] = useState(false)
+  const [resendMsg, setResendMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
+    setSelected(new Set())
+    setResendMsg(null)
     try {
       const res = await fetch(`/api/relatorios/diario?date=${date}`)
       if (res.ok) setData(await res.json())
@@ -77,6 +84,51 @@ export default function RelatorioDiarioPage() {
 
   function exportCsv() {
     window.open(`/api/export?type=cobrancas&from=${date}&to=${date}`, '_blank')
+  }
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function selectAllRetryable() {
+    if (!data) return
+    const ids = data.failedLogs.filter((l) => RETRYABLE_STATUS.has(l.status)).map((l) => l.id)
+    setSelected(new Set(ids))
+  }
+
+  function clearSelection() { setSelected(new Set()) }
+
+  async function resend(all: boolean) {
+    if (!data) return
+    const retryableLogs = data.failedLogs.filter((l) => RETRYABLE_STATUS.has(l.status))
+    const ids = all ? retryableLogs.map((l) => l.id) : Array.from(selected)
+    if (ids.length === 0) {
+      setResendMsg({ ok: false, text: 'Selecione ao menos uma mensagem para reenviar.' })
+      return
+    }
+    if (!confirm(`Confirma o reenvio de ${ids.length} mensagem(ns)?`)) return
+
+    setResending(true)
+    setResendMsg(null)
+    try {
+      const res = await fetch('/api/relatorios/diario/reenviar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ date, logIds: ids }),
+      })
+      const result = await res.json().catch(() => ({}))
+      setResendMsg({ ok: !!result.ok, text: result.message || result.error || `Erro ${res.status}` })
+      if (result.ok) await load()
+    } catch (err) {
+      setResendMsg({ ok: false, text: String(err) })
+    } finally {
+      setResending(false)
+    }
   }
 
   return (
@@ -142,10 +194,47 @@ export default function RelatorioDiarioPage() {
 
       {/* Tabela detalhada de falhas */}
       <Card>
-        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
-          <h2 className="font-semibold text-gray-900 dark:text-gray-100">Mensagens não entregues</h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400">Falhas, sem telefone e duplicadas</p>
+        <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h2 className="font-semibold text-gray-900 dark:text-gray-100">Mensagens não entregues</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Falhas, sem telefone e duplicadas{selected.size > 0 ? ` — ${selected.size} selecionada(s)` : ''}
+            </p>
+          </div>
+          {data?.failedLogs && data.failedLogs.some((l) => RETRYABLE_STATUS.has(l.status)) && (
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={selectAllRetryable}
+                disabled={resending}
+                className="text-xs px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+              >
+                Selecionar todas
+              </button>
+              {selected.size > 0 && (
+                <button
+                  onClick={clearSelection}
+                  disabled={resending}
+                  className="text-xs px-3 py-1.5 rounded-md border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-800"
+                >
+                  Limpar
+                </button>
+              )}
+              <Button
+                size="sm"
+                onClick={() => resend(false)}
+                disabled={resending || selected.size === 0}
+              >
+                <Send className="w-3.5 h-3.5 mr-1" />
+                {resending ? 'Reenviando...' : `Reenviar selecionadas (${selected.size})`}
+              </Button>
+            </div>
+          )}
         </div>
+        {resendMsg && (
+          <div className={`px-5 py-3 text-sm ${resendMsg.ok ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-800 dark:text-red-300'}`}>
+            {resendMsg.text}
+          </div>
+        )}
         <CardContent className="p-0">
           {loading ? (
             <div className="py-12 text-center text-gray-400 text-sm">Carregando...</div>
@@ -156,6 +245,7 @@ export default function RelatorioDiarioPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
+                    <th className="px-3 py-2 w-10"></th>
                     <th className="px-4 py-2 text-left">Cliente</th>
                     <th className="px-4 py-2 text-left">WhatsApp</th>
                     <th className="px-4 py-2 text-left">Estágio</th>
@@ -167,8 +257,22 @@ export default function RelatorioDiarioPage() {
                 <tbody>
                   {data.failedLogs.map((log) => {
                     const sc = statusConfig[log.status] || { label: log.status, variant: 'muted' as const }
+                    const canRetry = RETRYABLE_STATUS.has(log.status)
                     return (
-                      <tr key={log.id} className="border-b border-gray-50 dark:border-gray-700/50">
+                      <tr key={log.id} className={`border-b border-gray-50 dark:border-gray-700/50 ${selected.has(log.id) ? 'bg-purple-50/40 dark:bg-purple-900/10' : ''}`}>
+                        <td className="px-3 py-2.5 text-center">
+                          {canRetry ? (
+                            <input
+                              type="checkbox"
+                              checked={selected.has(log.id)}
+                              onChange={() => toggleSelect(log.id)}
+                              disabled={resending}
+                              className="rounded"
+                            />
+                          ) : (
+                            <span className="text-gray-300 dark:text-gray-700 text-xs" title="Sem telefone — não pode reenviar">—</span>
+                          )}
+                        </td>
                         <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-200">{log.client?.name}</td>
                         <td className="px-4 py-2.5 text-gray-500 dark:text-gray-400 text-xs">{log.whatsappTo || '—'}</td>
                         <td className="px-4 py-2.5">
