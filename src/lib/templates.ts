@@ -235,25 +235,19 @@ Você tem *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}*
 
 ${renderInvoiceList(v.faturas, false)}
 
-🔥 *Total: R$ ${v.valor_total}*
-
 Só passando pra te avisar! 😄`,
 
   D_MINUS_2: (v) => `Oi, ${v.nome}! 😄
 
 Você tem *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* vencendo em breve. Segue boleto e PIX de cada uma:
 
-${renderInvoiceList(v.faturas, true)}
-
-🔥 *Total: R$ ${v.valor_total}*`,
+${renderInvoiceList(v.faturas, true)}`,
 
   D_ZERO: (v) => `Oi, ${v.nome}! 👋
 
 Você tem *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* vencendo *hoje*:
 
 ${renderInvoiceList(v.faturas, true)}
-
-🔥 *Total: R$ ${v.valor_total}*
 
 Ainda dá tempo! 🚀`,
 
@@ -263,25 +257,19 @@ Suas *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* venc
 
 ${renderInvoiceList(v.faturas, true)}
 
-🔥 *Total: R$ ${v.valor_total}*
-
 Ainda dá pra pagar tranquilamente! 😉`,
 
   D_PLUS_5: (v) => `Oi, ${v.nome}! 👋
 
 Você tem *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* em aberto. Vamos resolver juntos:
 
-${renderInvoiceList(v.faturas, true)}
-
-🔥 *Total: R$ ${v.valor_total}*`,
+${renderInvoiceList(v.faturas, true)}`,
 
   D_PLUS_10: (v) => `Oi, ${v.nome}!
 
 Suas *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* precisam de atenção:
 
 ${renderInvoiceList(v.faturas, true)}
-
-🔥 *Total: R$ ${v.valor_total}*
 
 Ou fale com a gente:
 📞 *${v.company_whatsapp || '(número)'}*
@@ -290,8 +278,6 @@ Ou fale com a gente:
   D_PLUS_14: (v) => `${v.nome}, precisamos falar sobre suas *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}*.
 
 ${renderInvoiceList(v.faturas, false)}
-
-🔥 *Total em aberto: R$ ${v.valor_total}*
 
 O *serviço será suspenso amanhã* caso não seja regularizado.
 
