@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, TrendingUp, CreditCard,
-  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon, FileBarChart, Shield,
+  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon, FileBarChart, Shield, Stethoscope,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useTheme } from '@/components/theme-provider'
@@ -34,6 +34,7 @@ const navItems: NavItem[] = [
   { href: '/cobrancas', label: 'Cobranças', icon: CreditCard, feature: 'regua_basica' },
   { href: '/inadimplencia', label: 'Inadimplência', icon: AlertTriangle, feature: 'regua_basica' },
   { href: '/relatorios/diario', label: 'Relatório Diário', icon: FileBarChart, feature: 'relatorio_diario' },
+  { href: '/diagnostico', label: 'Diagnóstico', icon: Stethoscope },
   { href: '/workflow', label: 'Workflow', icon: GitBranch, feature: 'regua_basica' },
   { href: '/configuracoes', label: 'Configurações', icon: Settings },
 ]
