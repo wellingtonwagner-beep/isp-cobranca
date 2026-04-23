@@ -21,12 +21,14 @@ model Company {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  settings    CompanySettings?
-  clients     Client[]
-  invoices    Invoice[]
-  messageLogs MessageLog[]
-  configs     Config[]
-  holidays    Holiday[]
+  settings      CompanySettings?
+  clients       Client[]
+  invoices      Invoice[]
+  messageLogs   MessageLog[]
+  configs       Config[]
+  holidays      Holiday[]
+  products      Product[]
+  subscriptions Subscription[]
 
   @@map("companies")
 }
@@ -53,6 +55,17 @@ model CompanySettings {
   evolutionBaseUrl  String?
   evolutionApiKey   String?
   evolutionInstance String?
+
+  // PIX dinâmico via PSP (banco próprio) - usado quando erpType=manual
+  pixPsp              String?  // sicoob | asaas | mercadopago | gerencianet | sicredi | bb | bradesco | itau | inter | outro
+  pixPspApiKey        String?
+  pixPspClientId      String?
+  pixPspClientSecret  String?
+  pixPspWebhookSecret String?
+  pixKeyType          String?  // cpf | cnpj | email | phone | aleatoria
+  pixKeyValue         String?  // valor da chave PIX da empresa
+  pixBeneficiaryName  String?  // nome do recebedor no QR Code
+  pixBeneficiaryCity  String?  // cidade do recebedor no QR Code
 
   // Informações da empresa exibidas nas mensagens
   companyWhatsapp String?
@@ -95,12 +108,59 @@ model Client {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  invoices    Invoice[]
-  messageLogs MessageLog[]
+  invoices       Invoice[]
+  messageLogs    MessageLog[]
+  subscriptions  Subscription[]
 
   @@unique([companyId, externalId])
   @@index([companyId])
   @@map("clients")
+}
+
+// ─── Produtos / Serviços (banco proprio) ─────────────────────────────────────
+
+model Product {
+  id          String   @id @default(cuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  amount      Float
+  recurrence  String   @default("once") // once (avulsa) | monthly | yearly
+  active      Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  invoices      Invoice[]
+  subscriptions Subscription[]
+
+  @@index([companyId])
+  @@map("products")
+}
+
+// ─── Assinaturas (cliente x produto recorrente) ──────────────────────────────
+
+model Subscription {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  clientId    String
+  client      Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation(fields: [productId], references: [id])
+  startDate   DateTime
+  endDate     DateTime?
+  dayOfMonth  Int       // dia do mes para vencimento (1-31)
+  active      Boolean   @default(true)
+  lastGeneratedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  invoices Invoice[]
+
+  @@index([companyId])
+  @@index([clientId])
+  @@map("subscriptions")
 }
 
 // ─── Faturas ─────────────────────────────────────────────────────────────────
@@ -123,6 +183,18 @@ model Invoice {
   syncedAt  DateTime @default(now())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Banco proprio (erpType=manual)
+  sequentialNumber Int?     // numero amigavel sequencial por empresa (#001, #002...)
+  productId        String?
+  product          Product? @relation(fields: [productId], references: [id])
+  subscriptionId   String?
+  subscription     Subscription? @relation(fields: [subscriptionId], references: [id])
+  pixTxid          String?  // TXID PIX dinamico (unico por cobranca)
+  paidAt           DateTime?
+  paidVia          String?  // webhook_pix | manual | erp_sync | imported
+  paymentNote      String?  // observacao de baixa manual
+  description      String?  // descricao da fatura avulsa
 
   messageLogs MessageLog[]
 

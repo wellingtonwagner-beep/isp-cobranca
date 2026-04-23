@@ -40,6 +40,9 @@ export async function PUT(req: NextRequest) {
       companyWhatsapp, companyHours,
       // Cobranças
       testMode, sendWindowStart, sendWindowEnd, sendDays,
+      // PIX (banco proprio)
+      pixPsp, pixPspApiKey, pixPspClientId, pixPspClientSecret, pixPspWebhookSecret,
+      pixKeyType, pixKeyValue, pixBeneficiaryName, pixBeneficiaryCity,
     } = body
 
     // Atualiza dados da empresa
@@ -75,6 +78,15 @@ export async function PUT(req: NextRequest) {
         ...(sendWindowStart !== undefined && { sendWindowStart }),
         ...(sendWindowEnd !== undefined && { sendWindowEnd }),
         ...(sendDays !== undefined && { sendDays }),
+        ...(pixPsp !== undefined && { pixPsp }),
+        ...(pixPspApiKey !== undefined && { pixPspApiKey }),
+        ...(pixPspClientId !== undefined && { pixPspClientId }),
+        ...(pixPspClientSecret !== undefined && { pixPspClientSecret }),
+        ...(pixPspWebhookSecret !== undefined && { pixPspWebhookSecret }),
+        ...(pixKeyType !== undefined && { pixKeyType }),
+        ...(pixKeyValue !== undefined && { pixKeyValue }),
+        ...(pixBeneficiaryName !== undefined && { pixBeneficiaryName }),
+        ...(pixBeneficiaryCity !== undefined && { pixBeneficiaryCity }),
       },
       create: {
         companyId,
@@ -87,6 +99,8 @@ export async function PUT(req: NextRequest) {
         sendWindowStart: sendWindowStart || '08:00',
         sendWindowEnd: sendWindowEnd || '20:00',
         sendDays: sendDays || '1,2,3,4,5,6',
+        pixPsp, pixPspApiKey, pixPspClientId, pixPspClientSecret, pixPspWebhookSecret,
+        pixKeyType, pixKeyValue, pixBeneficiaryName, pixBeneficiaryCity,
       },
     })
 

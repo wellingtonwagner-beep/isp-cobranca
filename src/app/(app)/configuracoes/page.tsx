@@ -4,9 +4,23 @@
 import { useEffect, useState } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Building2, Wifi, MessageSquare, Clock, CheckCircle, Loader2, QrCode, RefreshCw, Send } from 'lucide-react'
+import { Building2, Wifi, MessageSquare, Clock, CheckCircle, Loader2, QrCode, RefreshCw, Send, Banknote } from 'lucide-react'
 
-type Tab = 'empresa' | 'erp' | 'whatsapp' | 'cobrancas'
+type Tab = 'empresa' | 'erp' | 'whatsapp' | 'cobrancas' | 'pix'
+
+const PSP_OPTIONS = [
+  { id: '', label: '— Selecione —' },
+  { id: 'sicoob', label: 'Sicoob' },
+  { id: 'asaas', label: 'Asaas' },
+  { id: 'mercadopago', label: 'Mercado Pago' },
+  { id: 'gerencianet', label: 'Gerencianet / Efí' },
+  { id: 'sicredi', label: 'Sicredi' },
+  { id: 'bb', label: 'Banco do Brasil' },
+  { id: 'bradesco', label: 'Bradesco' },
+  { id: 'itau', label: 'Itaú' },
+  { id: 'inter', label: 'Inter' },
+  { id: 'outro', label: 'Outro' },
+]
 
 interface Settings {
   company: { name: string; cnpj: string; email: string; logo?: string }
@@ -29,6 +43,15 @@ interface Settings {
     sendWindowStart: string
     sendWindowEnd: string
     sendDays: string
+    pixPsp?: string
+    pixPspApiKey?: string
+    pixPspClientId?: string
+    pixPspClientSecret?: string
+    pixPspWebhookSecret?: string
+    pixKeyType?: string
+    pixKeyValue?: string
+    pixBeneficiaryName?: string
+    pixBeneficiaryCity?: string
   } | null
 }
 
@@ -36,6 +59,7 @@ const TABS = [
   { id: 'empresa' as Tab, label: 'Empresa', icon: Building2 },
   { id: 'erp' as Tab, label: 'Integração ERP', icon: Wifi },
   { id: 'whatsapp' as Tab, label: 'WhatsApp', icon: MessageSquare },
+  { id: 'pix' as Tab, label: 'PIX', icon: Banknote },
   { id: 'cobrancas' as Tab, label: 'Cobranças', icon: Clock },
 ]
 
@@ -84,6 +108,15 @@ export default function ConfiguracoesPage() {
           sendWindowStart: d.settings?.sendWindowStart || '08:00',
           sendWindowEnd: d.settings?.sendWindowEnd || '20:00',
           sendDays: d.settings?.sendDays || '1,2,3,4,5,6',
+          pixPsp: d.settings?.pixPsp || '',
+          pixPspApiKey: d.settings?.pixPspApiKey || '',
+          pixPspClientId: d.settings?.pixPspClientId || '',
+          pixPspClientSecret: d.settings?.pixPspClientSecret || '',
+          pixPspWebhookSecret: d.settings?.pixPspWebhookSecret || '',
+          pixKeyType: d.settings?.pixKeyType || '',
+          pixKeyValue: d.settings?.pixKeyValue || '',
+          pixBeneficiaryName: d.settings?.pixBeneficiaryName || '',
+          pixBeneficiaryCity: d.settings?.pixBeneficiaryCity || '',
         })
         if (d.company?.logo) setLogoPreview(d.company.logo)
         setLoading(false)
@@ -269,10 +302,19 @@ export default function ConfiguracoesPage() {
                 >
                   <option value="sgp">SGP TSMX</option>
                   <option value="hubsoft">HubSoft</option>
-                  <option value="manual">Importação Manual (CSV)</option>
-                  <option value="webhook">Webhook</option>
+                  <option value="manual">Banco próprio do sistema</option>
+                  <option value="csv_import">Importação CSV (em breve)</option>
+                  <option value="webhook">Webhook (em breve)</option>
                 </select>
               </div>
+
+              {form.erpType === 'manual' && (
+                <div className="p-4 rounded-xl border border-purple-200 dark:border-purple-700 bg-purple-50 dark:bg-purple-900/20 text-sm text-purple-800 dark:text-purple-300">
+                  <strong>Banco próprio do sistema.</strong> Você gerencia diretamente no sistema:
+                  Clientes, Produtos/Serviços e Contas a Receber. As cobranças usarão PIX dinâmico
+                  via PSP (configure na aba PIX).
+                </div>
+              )}
               {form.erpType === 'sgp' && (
                 <>
                   <Field label="URL do SGP" name="sgpBaseUrl" value={form.sgpBaseUrl as string} onChange={handleChange} placeholder="https://suaempresa.sgp.net.br" />
@@ -427,6 +469,64 @@ export default function ConfiguracoesPage() {
                   </div>
                 )}
               </div>
+            </>
+          )}
+
+          {tab === 'pix' && (
+            <>
+              <div className="p-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700/50 text-xs text-gray-600 dark:text-gray-400">
+                Configure o provedor PSP para emissão de PIX dinâmico (com TXID identificador).
+                As cobranças geradas no modo <strong>Banco próprio</strong> usarão essa integração
+                para criar QR Codes e receber confirmação automática via webhook.
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Provedor PSP</label>
+                <select
+                  name="pixPsp"
+                  value={(form.pixPsp as string) || ''}
+                  onChange={handleChange}
+                  className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                >
+                  {PSP_OPTIONS.map((p) => (
+                    <option key={p.id} value={p.id}>{p.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">A integração real com o PSP será habilitada em breve. Por enquanto, salve as credenciais.</p>
+              </div>
+
+              {form.pixPsp && form.pixPsp !== '' && (
+                <>
+                  <Field label="API Key / Token" name="pixPspApiKey" value={form.pixPspApiKey as string} onChange={handleChange} placeholder="Chave principal de acesso à API do PSP" />
+                  <Field label="Client ID" name="pixPspClientId" value={form.pixPspClientId as string} onChange={handleChange} placeholder="ID do cliente OAuth (se aplicável)" />
+                  <Field label="Client Secret" name="pixPspClientSecret" value={form.pixPspClientSecret as string} onChange={handleChange} placeholder="Secret do cliente OAuth (se aplicável)" type="password" />
+                  <Field label="Webhook Secret" name="pixPspWebhookSecret" value={form.pixPspWebhookSecret as string} onChange={handleChange} placeholder="Secret usado para validar os webhooks de pagamento" type="password" />
+
+                  <div className="border-t border-gray-200 dark:border-gray-700 pt-5 mt-5">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Dados do recebedor (impressos no QR Code)</h3>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Tipo da chave PIX</label>
+                      <select
+                        name="pixKeyType"
+                        value={(form.pixKeyType as string) || ''}
+                        onChange={handleChange}
+                        className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="">— Selecione —</option>
+                        <option value="cpf">CPF</option>
+                        <option value="cnpj">CNPJ</option>
+                        <option value="email">E-mail</option>
+                        <option value="phone">Telefone</option>
+                        <option value="aleatoria">Chave aleatória</option>
+                      </select>
+                    </div>
+                    <Field label="Valor da chave PIX" name="pixKeyValue" value={form.pixKeyValue as string} onChange={handleChange} placeholder="Ex: 12345678900 ou contato@empresa.com" />
+                    <Field label="Nome do recebedor" name="pixBeneficiaryName" value={form.pixBeneficiaryName as string} onChange={handleChange} placeholder="Razão social ou nome registrado no PSP" />
+                    <Field label="Cidade do recebedor" name="pixBeneficiaryCity" value={form.pixBeneficiaryCity as string} onChange={handleChange} placeholder="Ex: PIUMHI" />
+                  </div>
+                </>
+              )}
             </>
           )}
 
