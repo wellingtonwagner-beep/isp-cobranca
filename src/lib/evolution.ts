@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from 'axios'
+import axios, { AxiosInstance, AxiosError } from 'axios'
 
 interface EvolutionConfig {
   baseUrl: string
@@ -28,12 +28,16 @@ export class EvolutionClient {
   }
 
   async sendText(phone: string, text: string): Promise<SendTextResponse> {
-    const res = await this.http.post<SendTextResponse>(`/message/sendText/${this.instance}`, {
-      number: phone,
-      text,
-      delay: 1200,
-    })
-    return res.data
+    try {
+      const res = await this.http.post<SendTextResponse>(`/message/sendText/${this.instance}`, {
+        number: phone,
+        text,
+        delay: 1200,
+      })
+      return res.data
+    } catch (err) {
+      throw new Error(extractEvolutionError(err, phone))
+    }
   }
 
   async sendTextWithDelay(phone: string, text: string, delayMs = 2000): Promise<SendTextResponse> {
@@ -77,6 +81,51 @@ export class EvolutionClient {
       // pode falhar se instância não existe
     }
   }
+}
+
+/**
+ * Extrai a mensagem de erro mais útil possível da resposta da Evolution API.
+ * A Evolution costuma retornar:
+ *   { status, error, message: string | string[] | { exists?: boolean, number?: string }[] }
+ * Quando o número não tem WhatsApp, devolve algo como:
+ *   { status: 400, message: [{ exists: false, number: '5537...' }] }
+ */
+function extractEvolutionError(err: unknown, phone: string): string {
+  if (!(err instanceof AxiosError)) return err instanceof Error ? err.message : String(err)
+
+  const status = err.response?.status
+  const data = err.response?.data as Record<string, unknown> | undefined
+
+  if (!data) {
+    if (err.code === 'ECONNABORTED') return 'Timeout ao chamar Evolution API'
+    if (err.code === 'ECONNREFUSED' || err.code === 'ENOTFOUND') return 'Servidor da Evolution API inacessível'
+    return `${err.code || 'Erro de rede'}: ${err.message}`
+  }
+
+  const msg = data.message ?? data.error ?? data.response
+
+  // Caso especial: { message: [{ exists: false, number: '...' }] }
+  if (Array.isArray(msg)) {
+    const first = msg[0]
+    if (first && typeof first === 'object' && 'exists' in first && first.exists === false) {
+      return `Número ${phone} não tem WhatsApp ativo`
+    }
+    const flat = msg.map((m) => typeof m === 'string' ? m : JSON.stringify(m)).join('; ')
+    return `Evolution ${status}: ${flat}`
+  }
+
+  if (typeof msg === 'string') {
+    if (/instance.*not.*connected|state.*close/i.test(msg)) return 'Instância WhatsApp desconectada — refaça o QR Code'
+    if (/instance.*not.*found/i.test(msg)) return 'Instância não encontrada na Evolution API'
+    if (/exists.*false|not.*exist|not.*registered/i.test(msg)) return `Número ${phone} não tem WhatsApp ativo`
+    return `Evolution ${status}: ${msg}`
+  }
+
+  if (msg && typeof msg === 'object') {
+    return `Evolution ${status}: ${JSON.stringify(msg)}`
+  }
+
+  return `Evolution ${status}: erro desconhecido`
 }
 
 /**
