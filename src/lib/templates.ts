@@ -108,10 +108,7 @@ Sua fatura da *${v.company_name || 'sua operadora'}* vence dia *${v.data_vencime
 🔥 Valor: *R$ ${v.valor}*
 
 Pra facilitar, segue o boleto e o PIX prontinho pra você 👇`,
-    pixMessage: (v: TemplateVars) => `🔗 *Boleto:* ${v.link_boleto || '(link do boleto)'}
-
-💳 *PIX Copia e Cola:*
-${v.codigo_pix || ''}`,
+    pixMessage: (v: TemplateVars) => `🔗 Boleto: ${v.link_boleto || '(link do boleto)'}`,
   },
   {
     stage: 'D_ZERO',
@@ -122,10 +119,7 @@ Sua fatura da *${v.company_name || 'sua operadora'}* vence *hoje*!
 🔥 Valor: *R$ ${v.valor}*
 
 Ainda dá tempo de pagar e manter sua internet voando! 🚀`,
-    pixMessage: (v: TemplateVars) => `🔗 *Boleto:* ${v.link_boleto || '(link do boleto)'}
-
-💳 *PIX Copia e Cola:*
-${v.codigo_pix || ''}`,
+    pixMessage: (v: TemplateVars) => `🔗 Boleto: ${v.link_boleto || '(link do boleto)'}`,
   },
   {
     stage: 'D_PLUS_1',
@@ -136,10 +130,7 @@ Passando pra avisar que sua fatura da *${v.company_name || 'sua operadora'}* ven
 🔥 Valor: *R$ ${v.valor}*
 
 Mas relaxa, ainda dá pra pagar tranquilamente pelo boleto ou PIX! 😉`,
-    pixMessage: (v: TemplateVars) => `🔗 *Boleto:* ${v.link_boleto || '(link do boleto)'}
-
-💳 *PIX Copia e Cola:*
-${v.codigo_pix || ''}`,
+    pixMessage: (v: TemplateVars) => `🔗 Boleto: ${v.link_boleto || '(link do boleto)'}`,
   },
   {
     stage: 'D_PLUS_5',
@@ -150,10 +141,7 @@ Sua fatura da *${v.company_name || 'sua operadora'}* tá com alguns dias em aber
 🔥 Valor: *R$ ${v.valor}*
 
 Regularizando, sua internet continua voando! 🚀`,
-    pixMessage: (v: TemplateVars) => `🔗 *Boleto atualizado:* ${v.link_boleto || '(link do boleto)'}
-
-💳 *PIX:*
-${v.codigo_pix || ''}`,
+    pixMessage: (v: TemplateVars) => `🔗 Boleto atualizado: ${v.link_boleto || '(link do boleto)'}`,
   },
   {
     stage: 'D_PLUS_10',
@@ -165,14 +153,10 @@ A gente sabe que a correria do dia a dia é grande, mas sua fatura da *${v.compa
 
 A gente quer te ajudar a resolver da melhor forma possível. 🤝
 
-🔗 *Boleto:* ${v.link_boleto || '(link do boleto)'}
-
-💳 *PIX Copia e Cola:*
-
 Ou fale com a gente:
 📞 *${v.company_whatsapp || '(número)'}*
 🕐 Seg-Sex 8h às 18h | Sáb 8h às 12h`,
-    pixMessage: (v: TemplateVars) => `${v.codigo_pix || '(código pix)'}`,
+    pixMessage: (v: TemplateVars) => `🔗 Boleto: ${v.link_boleto || '(link do boleto)'}`,
   },
   {
     stage: 'D_PLUS_14',
@@ -233,14 +217,13 @@ export function getStageByOffset(offset: number): Stage | null {
 
 // ─── Templates consolidados (cliente com mais de 1 fatura no mesmo estágio) ──
 
-function renderInvoiceList(faturas: InvoiceItem[], includeBoletoPix: boolean): string {
+function renderInvoiceList(faturas: InvoiceItem[], includeBoleto: boolean): string {
   return faturas.map((f, i) => {
     const lines = [
       `*${i + 1}. ${f.planName}* — Vence ${f.data_vencimento}`,
       `   💰 R$ ${f.valor}`,
     ]
-    if (includeBoletoPix && f.link_boleto) lines.push(`   🔗 Boleto: ${f.link_boleto}`)
-    if (includeBoletoPix && f.codigo_pix) lines.push(`   💳 PIX: ${f.codigo_pix}`)
+    if (includeBoleto && f.link_boleto) lines.push(`   🔗 Boleto: ${f.link_boleto}`)
     return lines.join('\n')
   }).join('\n\n')
 }

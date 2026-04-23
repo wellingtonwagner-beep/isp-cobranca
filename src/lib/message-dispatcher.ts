@@ -85,11 +85,11 @@ export async function dispatchMessage(
     return { status: 'skipped_no_phone' }
   }
 
-  // 3. Renderiza template
+  // 3. Renderiza template — valor já formatado SEM "R$" (template adiciona)
   const vars = {
     nome: client.name.split(' ')[0],
     data_vencimento: formatDateBR(invoice.dueDate),
-    valor: formatCurrency(invoice.amount),
+    valor: formatCurrency(invoice.amount).replace('R$', '').trim(),
     link_boleto: invoice.boletoUrl || undefined,
     codigo_pix: invoice.pixCode || undefined,
     company_name: companySettings?.companyName || process.env.NEXT_PUBLIC_COMPANY_NAME || 'sua operadora',
@@ -135,10 +135,18 @@ export async function dispatchMessage(
     const res = await evolutionClient.sendText(client.whatsapp, mainMessage)
     let msgIds = res.key?.id || ''
 
+    // pixMessage agora carrega só o boleto (texto + link)
     if (pixMessage) {
       await new Promise((r) => setTimeout(r, 1500))
       const pixRes = await evolutionClient.sendText(client.whatsapp, pixMessage)
       if (pixRes.key?.id) msgIds += `,${pixRes.key.id}`
+    }
+
+    // Mensagem dedicada com APENAS o código PIX para facilitar copy no app de pagamento
+    if (invoice.pixCode) {
+      await new Promise((r) => setTimeout(r, 1500))
+      const codeRes = await evolutionClient.sendText(client.whatsapp, invoice.pixCode)
+      if (codeRes.key?.id) msgIds += `,${codeRes.key.id}`
     }
 
     await finalizeLog('sent', msgIds)
@@ -254,12 +262,28 @@ export async function dispatchConsolidatedMessage(
     return { status: 'failed', error: 'Evolution API não configurada' }
   }
 
-  // 6. Envia uma única mensagem
+  // 6. Envia consolidada + para cada fatura: rótulo + código PIX (sozinho) para permitir copy limpo
   try {
     const res = await evolutionClient.sendText(client.whatsapp, messageBody)
-    const msgId = res.key?.id || ''
-    await finalizeAll('sent', msgId)
-    return { status: 'sent', evolutionMsgId: msgId }
+    let allMsgIds = res.key?.id || ''
+
+    for (const inv of invoices) {
+      if (!inv.pixCode) continue
+
+      await new Promise((r) => setTimeout(r, 1500))
+      const labelRes = await evolutionClient.sendText(
+        client.whatsapp,
+        `💳 PIX — *${inv.planName || 'Plano'}*`,
+      )
+      if (labelRes.key?.id) allMsgIds += `,${labelRes.key.id}`
+
+      await new Promise((r) => setTimeout(r, 1000))
+      const codeRes = await evolutionClient.sendText(client.whatsapp, inv.pixCode)
+      if (codeRes.key?.id) allMsgIds += `,${codeRes.key.id}`
+    }
+
+    await finalizeAll('sent', allMsgIds)
+    return { status: 'sent', evolutionMsgId: allMsgIds }
   } catch (err: unknown) {
     const errorMsg = err instanceof Error ? err.message : String(err)
     await finalizeAll('failed', undefined, errorMsg)
