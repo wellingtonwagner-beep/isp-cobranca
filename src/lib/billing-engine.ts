@@ -1,5 +1,5 @@
 import { prisma } from './prisma'
-import { dispatchMessage } from './message-dispatcher'
+import { dispatchMessage, dispatchConsolidatedMessage } from './message-dispatcher'
 import { isWithinSendWindow } from './send-window'
 import { isTodayHoliday } from './holidays'
 import { createSgpClient } from './sgp'
@@ -107,43 +107,61 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
       errors: 0,
     }
 
+    // Filtra invoices: pula clientes bloqueados (>60d) e valida pagamento no ERP.
+    // Resultado: invoicesToSend agrupadas por cliente para decidir single vs consolidado.
+    const invoicesToSend: typeof invoices = []
     for (const invoice of invoices) {
-      // Cliente com qualquer fatura em atraso >60d: pula sem consultar ERP.
       if (blockedClientIds.has(invoice.clientId)) {
         stageResult.skipped++
         continue
       }
-
-      // Valida pagamento em tempo real no ERP antes de enviar qualquer cobrança.
-      // Protege contra disparos indevidos quando o sync local está desatualizado.
       if (invoice.client.cpfCnpj && (sgpClient || hubsoftClient)) {
         try {
           const paid = sgpClient
             ? await sgpClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
             : await hubsoftClient!.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
           if (paid) {
-            await prisma.invoice.update({
-              where: { id: invoice.id },
-              data: { status: 'paga' },
-            })
+            await prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'paga' } })
             stageResult.skipped++
             continue
           }
         } catch {
-          // Se falhar a consulta ao ERP, continua com o status local
+          // Se falhar consulta ao ERP, segue com status local
         }
       }
+      invoicesToSend.push(invoice)
+    }
 
-      const res = await dispatchMessage(
-        invoice.client,
-        invoice,
-        stageConfig.stage as Stage,
-        testMode,
-        evolutionClient,
-        companySettings,
-        customTemplates,
-      )
+    // Agrupa por cliente para consolidar quando houver mais de uma fatura no mesmo estágio
+    const byClient = new Map<string, typeof invoices>()
+    for (const inv of invoicesToSend) {
+      const list = byClient.get(inv.clientId) || []
+      list.push(inv)
+      byClient.set(inv.clientId, list)
+    }
 
+    for (const clientInvoices of Array.from(byClient.values())) {
+      const isConsolidated = clientInvoices.length > 1
+      const res = isConsolidated
+        ? await dispatchConsolidatedMessage(
+            clientInvoices[0].client,
+            clientInvoices,
+            stageConfig.stage as Stage,
+            testMode,
+            evolutionClient,
+            companySettings,
+          )
+        : await dispatchMessage(
+            clientInvoices[0].client,
+            clientInvoices[0],
+            stageConfig.stage as Stage,
+            testMode,
+            evolutionClient,
+            companySettings,
+            customTemplates,
+          )
+
+      // Conta uma vez por mensagem despachada (não por fatura).
       if (res.status === 'sent' || res.status === 'blocked_test') {
         stageResult.sent++
       } else if (res.status === 'failed') {

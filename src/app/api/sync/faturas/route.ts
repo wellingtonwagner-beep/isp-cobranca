@@ -58,11 +58,13 @@ async function syncSgp(companyId: string, settings: Record<string, unknown>) {
           const invoiceExternalId = String(t.id)
           const dueDate = new Date(`${t.dataVencimento}T03:00:00.000Z`)
           const amount = t.valorCorrigido ?? t.valor
+          // Identifica o plano associado ao contrato desta fatura, fallback para plano principal do cliente
+          const planName = client.planName || null
 
           await prisma.invoice.upsert({
             where: { companyId_externalId: { companyId, externalId: invoiceExternalId } },
-            update: { dueDate, amount, status: 'aberta', boletoUrl: t.link || null, pixCode: t.codigoPix || null, sgpRaw: JSON.stringify(t), syncedAt: new Date() },
-            create: { companyId, externalId: invoiceExternalId, clientId: client.id, dueDate, amount, status: 'aberta', boletoUrl: t.link || null, pixCode: t.codigoPix || null, sgpRaw: JSON.stringify(t) },
+            update: { dueDate, amount, status: 'aberta', boletoUrl: t.link || null, pixCode: t.codigoPix || null, planName, sgpRaw: JSON.stringify(t), syncedAt: new Date() },
+            create: { companyId, externalId: invoiceExternalId, clientId: client.id, dueDate, amount, status: 'aberta', boletoUrl: t.link || null, pixCode: t.codigoPix || null, planName, sgpRaw: JSON.stringify(t) },
           })
           synced++
         } catch (err) { errors++; console.error(`[sync/faturas][${companyId}] Erro:`, err) }
@@ -100,20 +102,21 @@ async function syncHubsoft(companyId: string, settings: Record<string, unknown>)
         const dueDateStr = HubSoftClient.parseDate(f.data_vencimento)
         const dueDate = new Date(`${dueDateStr}T03:00:00.000Z`)
 
+        const planName = client.planName || null
         await prisma.invoice.upsert({
           where: { companyId_externalId: { companyId, externalId: invoiceExternalId } },
           update: {
             dueDate, amount: f.valor,
             status: f.quitado ? 'paga' : f.status === 'vencido' ? 'vencida' : 'aberta',
             boletoUrl: f.link || null, pixCode: f.pix_copia_cola || null,
-            sgpRaw: JSON.stringify(f), syncedAt: new Date(),
+            planName, sgpRaw: JSON.stringify(f), syncedAt: new Date(),
           },
           create: {
             companyId, externalId: invoiceExternalId, clientId: client.id,
             dueDate, amount: f.valor,
             status: f.quitado ? 'paga' : f.status === 'vencido' ? 'vencida' : 'aberta',
             boletoUrl: f.link || null, pixCode: f.pix_copia_cola || null,
-            sgpRaw: JSON.stringify(f),
+            planName, sgpRaw: JSON.stringify(f),
           },
         })
         synced++

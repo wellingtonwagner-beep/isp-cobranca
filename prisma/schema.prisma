@@ -118,6 +118,7 @@ model Invoice {
   status    String   @default("aberta")
   boletoUrl String?
   pixCode   String?
+  planName  String?  // nome do plano/serviço associado a esta fatura
   sgpRaw    String?
   syncedAt  DateTime @default(now())
   createdAt DateTime @default(now())

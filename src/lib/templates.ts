@@ -1,4 +1,4 @@
-import type { Stage, StageConfig, MessageTemplate, TemplateVars } from '@/types'
+import type { Stage, StageConfig, MessageTemplate, TemplateVars, ConsolidatedTemplateVars, InvoiceItem } from '@/types'
 
 export const STAGES: StageConfig[] = [
   {
@@ -230,3 +230,96 @@ export function getStageByOffset(offset: number): Stage | null {
   const stage = STAGES.find((s) => s.dayOffset === offset)
   return stage ? stage.stage : null
 }
+
+// ─── Templates consolidados (cliente com mais de 1 fatura no mesmo estágio) ──
+
+function renderInvoiceList(faturas: InvoiceItem[], includeBoletoPix: boolean): string {
+  return faturas.map((f, i) => {
+    const lines = [
+      `*${i + 1}. ${f.planName}* — Vence ${f.data_vencimento}`,
+      `   💰 R$ ${f.valor}`,
+    ]
+    if (includeBoletoPix && f.link_boleto) lines.push(`   🔗 Boleto: ${f.link_boleto}`)
+    if (includeBoletoPix && f.codigo_pix) lines.push(`   💳 PIX: ${f.codigo_pix}`)
+    return lines.join('\n')
+  }).join('\n\n')
+}
+
+const CONSOLIDATED: Partial<Record<Stage, (v: ConsolidatedTemplateVars) => string>> = {
+  D_MINUS_5: (v) => `Oi, ${v.nome}! Tudo bem? 😊
+
+Você tem *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* chegando:
+
+${renderInvoiceList(v.faturas, false)}
+
+🔥 *Total: R$ ${v.valor_total}*
+
+Só passando pra te avisar! 😄`,
+
+  D_MINUS_2: (v) => `Oi, ${v.nome}! 😄
+
+Você tem *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* vencendo em breve. Segue boleto e PIX de cada uma:
+
+${renderInvoiceList(v.faturas, true)}
+
+🔥 *Total: R$ ${v.valor_total}*`,
+
+  D_ZERO: (v) => `Oi, ${v.nome}! 👋
+
+Você tem *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* vencendo *hoje*:
+
+${renderInvoiceList(v.faturas, true)}
+
+🔥 *Total: R$ ${v.valor_total}*
+
+Ainda dá tempo! 🚀`,
+
+  D_PLUS_1: (v) => `Oi, ${v.nome}! Tudo certo? 🙂
+
+Suas *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* venceram ontem:
+
+${renderInvoiceList(v.faturas, true)}
+
+🔥 *Total: R$ ${v.valor_total}*
+
+Ainda dá pra pagar tranquilamente! 😉`,
+
+  D_PLUS_5: (v) => `Oi, ${v.nome}! 👋
+
+Você tem *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* em aberto. Vamos resolver juntos:
+
+${renderInvoiceList(v.faturas, true)}
+
+🔥 *Total: R$ ${v.valor_total}*`,
+
+  D_PLUS_10: (v) => `Oi, ${v.nome}!
+
+Suas *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}* precisam de atenção:
+
+${renderInvoiceList(v.faturas, true)}
+
+🔥 *Total: R$ ${v.valor_total}*
+
+Ou fale com a gente:
+📞 *${v.company_whatsapp || '(número)'}*
+🕐 Seg-Sex 8h às 18h | Sáb 8h às 12h`,
+
+  D_PLUS_14: (v) => `${v.nome}, precisamos falar sobre suas *${v.total_faturas} faturas* da *${v.company_name || 'sua operadora'}*.
+
+${renderInvoiceList(v.faturas, false)}
+
+🔥 *Total em aberto: R$ ${v.valor_total}*
+
+O *serviço será suspenso amanhã* caso não seja regularizado.
+
+📞 WhatsApp: *${v.company_whatsapp || '(número)'}*
+🕐 Seg-Sex 8h às 18h | Sáb 8h às 12h
+
+Evite a suspensão — regularize hoje.`,
+}
+
+export function renderConsolidatedTemplate(stage: Stage, vars: ConsolidatedTemplateVars): string | null {
+  const fn = CONSOLIDATED[stage]
+  return fn ? fn(vars) : null
+}
+

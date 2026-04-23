@@ -34,6 +34,7 @@ export interface MessageTemplate {
   stage: Stage
   mainMessage: (vars: TemplateVars) => string
   pixMessage?: (vars: TemplateVars) => string
+  consolidatedMessage?: (vars: ConsolidatedTemplateVars) => string
 }
 
 export interface TemplateVars {
@@ -42,6 +43,23 @@ export interface TemplateVars {
   valor: string
   link_boleto?: string
   codigo_pix?: string
+  company_name?: string
+  company_whatsapp?: string
+}
+
+export interface InvoiceItem {
+  planName: string
+  data_vencimento: string
+  valor: string
+  link_boleto?: string
+  codigo_pix?: string
+}
+
+export interface ConsolidatedTemplateVars {
+  nome: string
+  total_faturas: number
+  valor_total: string
+  faturas: InvoiceItem[]
   company_name?: string
   company_whatsapp?: string
 }
