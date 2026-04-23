@@ -36,6 +36,20 @@ interface AnalyticsData {
   }
 }
 
+interface RankingRow {
+  clientId: string
+  clientName: string
+  total: number
+  percent: number
+  count: number
+  pmrDays: number
+}
+
+interface RankingsData {
+  principaisClientes: { rows: RankingRow[]; outros: { total: number; count: number; percent: number }; grandTotal: number }
+  principaisDevedores: { rows: RankingRow[]; outros: { total: number; count: number; percent: number }; grandTotal: number }
+}
+
 const PIE_COLORS = ['#8b5cf6', '#f59e0b', '#ef4444', '#6b7280', '#3b82f6']
 
 function formatCurrencyShort(v: number): string {
@@ -49,16 +63,19 @@ export default function DashboardPage() {
     overdueInvoices: 0, todayLogs: 0, monthLogs: 0,
   })
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null)
+  const [rankings, setRankings] = useState<RankingsData | null>(null)
   const [syncMsg, setSyncMsg] = useState<string | null>(null)
   const [syncCountdown, setSyncCountdown] = useState(0)
 
   const load = useCallback(async () => {
-    const [dashRes, analyticsRes] = await Promise.all([
+    const [dashRes, analyticsRes, rankingsRes] = await Promise.all([
       fetch('/api/dashboard').catch(() => null),
       fetch('/api/analytics').catch(() => null),
+      fetch('/api/dashboard/rankings?limit=5').catch(() => null),
     ])
     if (dashRes?.ok) setData(await dashRes.json())
     if (analyticsRes?.ok) setAnalytics(await analyticsRes.json())
+    if (rankingsRes?.ok) setRankings(await rankingsRes.json())
   }, [])
 
   useEffect(() => { load() }, [load])
@@ -346,6 +363,28 @@ export default function DashboardPage() {
         </>
       )}
 
+      {/* Rankings: Principais clientes e devedores */}
+      {rankings && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+          <RankingCard
+            title="Principais clientes"
+            subtitle="Últimos 12 meses · por valor pago"
+            data={rankings.principaisClientes}
+            pmrLabel="PMR"
+            pmrTooltip="Prazo Médio de Recebimento (dias entre vencimento e pagamento)"
+            emptyText="Nenhum pagamento registrado nos últimos 12 meses."
+          />
+          <RankingCard
+            title="Principais devedores"
+            subtitle="Últimos 12 meses · por valor em aberto"
+            data={rankings.principaisDevedores}
+            pmrLabel="Atraso"
+            pmrTooltip="Média de dias em atraso desde o vencimento"
+            emptyText="Nenhum cliente com débito em aberto nos últimos 12 meses."
+          />
+        </div>
+      )}
+
       {/* Atalhos */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card>
@@ -415,5 +454,70 @@ export default function DashboardPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+function formatCurrencyBR(v: number): string {
+  return v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+}
+
+function RankingCard({
+  title, subtitle, data, pmrLabel, pmrTooltip, emptyText,
+}: {
+  title: string
+  subtitle: string
+  data: { rows: RankingRow[]; outros: { total: number; count: number; percent: number }; grandTotal: number }
+  pmrLabel: string
+  pmrTooltip: string
+  emptyText: string
+}) {
+  return (
+    <Card>
+      <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+        <h2 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{title}</h2>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>
+      </div>
+      <CardContent className="p-0">
+        {data.rows.length === 0 ? (
+          <div className="py-8 text-center text-gray-400 text-xs">{emptyText}</div>
+        ) : (
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="border-b border-gray-100 dark:border-gray-700 text-[10px] text-gray-400 uppercase">
+                <th className="px-4 py-2 text-left">Cliente</th>
+                <th className="px-2 py-2 text-right">Valor</th>
+                <th className="px-2 py-2 text-right">%</th>
+                <th className="px-2 py-2 text-right">Faturas</th>
+                <th className="px-3 py-2 text-right" title={pmrTooltip}>{pmrLabel}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.rows.map((r) => (
+                <tr key={r.clientId} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                  <td className="px-4 py-2 font-medium text-gray-800 dark:text-gray-200 truncate max-w-[180px]">
+                    <Link href={`/clientes?q=${encodeURIComponent(r.clientName)}`} className="hover:text-purple-600 dark:hover:text-purple-400" title={r.clientName}>
+                      {r.clientName}
+                    </Link>
+                  </td>
+                  <td className="px-2 py-2 text-right text-gray-700 dark:text-gray-300 whitespace-nowrap">{formatCurrencyBR(r.total)}</td>
+                  <td className="px-2 py-2 text-right text-gray-500">{r.percent}%</td>
+                  <td className="px-2 py-2 text-right text-gray-500">{r.count}</td>
+                  <td className="px-3 py-2 text-right text-gray-500">{r.pmrDays}d</td>
+                </tr>
+              ))}
+              {data.outros.total > 0 && (
+                <tr className="bg-gray-50/60 dark:bg-gray-800/40 text-gray-500">
+                  <td className="px-4 py-2 italic">Demais</td>
+                  <td className="px-2 py-2 text-right whitespace-nowrap">{formatCurrencyBR(data.outros.total)}</td>
+                  <td className="px-2 py-2 text-right">{data.outros.percent}%</td>
+                  <td className="px-2 py-2 text-right">{data.outros.count}</td>
+                  <td className="px-3 py-2 text-right">—</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        )}
+      </CardContent>
+    </Card>
   )
 }
