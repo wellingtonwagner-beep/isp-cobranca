@@ -9,7 +9,7 @@ interface Diagnostico {
   today: string
   nowBrt: string
   logsByDay: Record<string, Record<string, number>>
-  lastSent: { sentAt: string; stage: string; whatsappTo: string } | null
+  lastSent: { sentAt: string; stage: string; whatsappTo: string; client?: { name: string } | null } | null
   eligibleByStage: { stage: string; label: string; targetDate: string; eligible: number; alreadySent: number }[]
   config: {
     testMode: boolean
@@ -41,6 +41,11 @@ const statusColors: Record<string, string> = {
   skipped_paid: 'text-gray-400',
 }
 const dayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+const stageLabels: Record<string, string> = {
+  D_MINUS_5: 'D-5', D_MINUS_2: 'D-2', D_ZERO: 'D-0',
+  D_PLUS_1: 'D+1', D_PLUS_5: 'D+5', D_PLUS_10: 'D+10', D_PLUS_14: 'D+14',
+}
 
 export default function DiagnosticoPage() {
   const [data, setData] = useState<Diagnostico | null>(null)
@@ -128,7 +133,7 @@ export default function DiagnosticoPage() {
                     Última mensagem enviada com sucesso
                   </div>
                   <div className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                    {new Date(data.lastSent.sentAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} — estágio {data.lastSent.stage} para {data.lastSent.whatsappTo}
+                    {new Date(data.lastSent.sentAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })} — estágio {stageLabels[data.lastSent.stage] || data.lastSent.stage} para {data.lastSent.client?.name || 'cliente'} ({data.lastSent.whatsappTo})
                   </div>
                 </div>
               ) : (

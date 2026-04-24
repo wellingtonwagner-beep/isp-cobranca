@@ -45,7 +45,12 @@ export async function GET() {
     const lastSent = await prisma.messageLog.findFirst({
       where: { companyId, status: 'sent' },
       orderBy: { sentAt: 'desc' },
-      select: { sentAt: true, stage: true, whatsappTo: true },
+      select: {
+        sentAt: true,
+        stage: true,
+        whatsappTo: true,
+        client: { select: { name: true } },
+      },
     })
 
     // 3. Faturas elegíveis para cada estágio HOJE (o que o billing engine processaria)
