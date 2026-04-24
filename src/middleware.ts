@@ -12,6 +12,11 @@ const PUBLIC_PATHS = [
   '/api/admin-auth/login', '/api/admin-auth/logout',
   '/api/admin-auth/setup',
   '/api/companies', '/qr.html',
+  // Rotas chamadas pelo cron-server — sao protegidas internamente por
+  // CRON_SECRET no header. Precisam ficar publicas no middleware para
+  // nao serem redirecionadas para /login.
+  '/api/cron', '/api/sync/faturas', '/api/sync/clientes',
+  '/api/subscriptions/generate',
 ]
 
 // Rotas que exigem ADMIN (super-admin do sistema)
