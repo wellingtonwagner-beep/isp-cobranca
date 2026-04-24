@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifyToken, COOKIE_NAME } from '@/lib/jwt'
 
-const PUBLIC_PATHS = ['/login', '/register', '/api/auth/login', '/api/auth/logout', '/api/companies', '/qr.html']
+const PUBLIC_PATHS = [
+  '/login', '/register',
+  '/esqueci-senha', '/redefinir-senha',
+  '/api/auth/login', '/api/auth/logout',
+  '/api/auth/forgot-password', '/api/auth/reset-password',
+  '/api/companies', '/qr.html',
+]
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
