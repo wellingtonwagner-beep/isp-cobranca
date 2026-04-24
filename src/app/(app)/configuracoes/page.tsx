@@ -219,6 +219,7 @@ export default function ConfiguracoesPage() {
   async function save() {
     setSaving(true)
     setSaved(false)
+    const previousErpType = data?.settings?.erpType
     await fetch('/api/configuracoes', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -226,6 +227,14 @@ export default function ConfiguracoesPage() {
     })
     setSaving(false)
     setSaved(true)
+
+    // Se o erpType mudou, recarrega a pagina para o Sidebar refletir
+    // os novos itens de menu (Produtos, Assinaturas, Contas a Receber)
+    if (previousErpType && previousErpType !== form.erpType) {
+      setTimeout(() => window.location.reload(), 600)
+      return
+    }
+
     setTimeout(() => setSaved(false), 3000)
   }
 
