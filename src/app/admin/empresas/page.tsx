@@ -269,14 +269,25 @@ export default function AdminEmpresasPage() {
               )}
             </div>
             <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 dark:border-gray-700">
-              <button onClick={closeWipe} disabled={wiping} className="text-sm px-4 py-2 text-gray-600 dark:text-gray-400 font-medium">Cancelar</button>
-              <button
-                onClick={executeWipe}
-                disabled={wiping || wipeConfirm !== wipeTarget.name}
-                className="inline-flex items-center gap-2 text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
-              >
-                {wiping ? <><Loader2 size={14} className="animate-spin" /> Apagando...</> : <><Eraser size={14} /> Apagar dados</>}
-              </button>
+              {wipeResult?.ok ? (
+                <button
+                  onClick={closeWipe}
+                  className="inline-flex items-center gap-2 text-sm bg-green-600 text-white px-5 py-2 rounded-lg hover:bg-green-700"
+                >
+                  Fechar
+                </button>
+              ) : (
+                <>
+                  <button onClick={closeWipe} disabled={wiping} className="text-sm px-4 py-2 text-gray-600 dark:text-gray-400 font-medium">Cancelar</button>
+                  <button
+                    onClick={executeWipe}
+                    disabled={wiping || wipeConfirm !== wipeTarget.name}
+                    className="inline-flex items-center gap-2 text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
+                  >
+                    {wiping ? <><Loader2 size={14} className="animate-spin" /> Apagando...</> : <><Eraser size={14} /> Apagar dados</>}
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>

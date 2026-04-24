@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Users, Plus, X, Loader2, Power, KeyRound, Trash2 } from 'lucide-react'
 import { formatDateBR } from '@/lib/utils'
+import { PasswordInput } from '@/components/ui/password-input'
 
 interface AdminUser {
   id: string
@@ -185,7 +186,7 @@ export default function AdminsPage() {
         <Modal onClose={() => setCreating(false)} title="Novo Administrador">
           <Field label="Nome"><input className="adm-input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></Field>
           <Field label="E-mail"><input type="email" className="adm-input" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></Field>
-          <Field label="Senha (min 8 caracteres)"><input type="password" className="adm-input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
+          <Field label="Senha (min 8 caracteres)"><PasswordInput className="adm-input" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} /></Field>
           {formError && <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">{formError}</div>}
           <div className="flex justify-end gap-2 pt-2">
             <button onClick={() => setCreating(false)} className="text-sm px-4 py-2 text-gray-600 font-medium">Cancelar</button>
@@ -203,7 +204,7 @@ export default function AdminsPage() {
       {resetting && (
         <Modal onClose={() => setResetting(null)} title={`Redefinir senha de ${resetting.name}`}>
           <Field label="Nova senha (min 8 caracteres)">
-            <input type="password" className="adm-input" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} autoFocus />
+            <PasswordInput className="adm-input" value={newPwd} onChange={(e) => setNewPwd(e.target.value)} autoFocus />
           </Field>
           {formError && <div className="text-sm text-red-600 bg-red-50 px-3 py-2 rounded">{formError}</div>}
           <div className="flex justify-end gap-2 pt-2">

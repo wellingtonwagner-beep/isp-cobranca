@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PasswordInput } from '@/components/ui/password-input'
 
 function formatCNPJ(v: string) {
   return v
@@ -175,9 +176,8 @@ export default function RegisterPage() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Senha *</label>
-              <input
+              <PasswordInput
                 name="password"
-                type="password"
                 value={form.password}
                 onChange={handleChange}
                 required
@@ -187,9 +187,8 @@ export default function RegisterPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar *</label>
-              <input
+              <PasswordInput
                 name="confirmPassword"
-                type="password"
                 value={form.confirmPassword}
                 onChange={handleChange}
                 required

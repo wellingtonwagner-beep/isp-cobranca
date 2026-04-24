@@ -3,6 +3,7 @@
 import { useState, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
+import { PasswordInput } from '@/components/ui/password-input'
 
 function RedefinirContent() {
   const router = useRouter()
@@ -72,8 +73,7 @@ function RedefinirContent() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Nova senha</label>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -85,8 +85,7 @@ function RedefinirContent() {
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar senha</label>
-            <input
-              type="password"
+            <PasswordInput
               value={confirm}
               onChange={(e) => setConfirm(e.target.value)}
               required

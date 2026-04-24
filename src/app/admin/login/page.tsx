@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Shield, AlertTriangle } from 'lucide-react'
+import { PasswordInput } from '@/components/ui/password-input'
 
 export default function AdminLoginPage() {
   const router = useRouter()
@@ -142,17 +143,28 @@ function LoginField({
   label: string; value: string; onChange: (v: string) => void;
   placeholder?: string; type?: string; required?: boolean;
 }) {
+  const className = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500'
   return (
     <div>
       <label className="block text-sm font-medium text-gray-700 mb-1">{label}</label>
-      <input
-        type={type || 'text'}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        required={required}
-        placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-amber-500"
-      />
+      {type === 'password' ? (
+        <PasswordInput
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          placeholder={placeholder}
+          className={className}
+        />
+      ) : (
+        <input
+          type={type || 'text'}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          required={required}
+          placeholder={placeholder}
+          className={className}
+        />
+      )}
     </div>
   )
 }

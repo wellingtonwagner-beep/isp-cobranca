@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { PasswordInput } from '@/components/ui/password-input'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -71,8 +72,7 @@ export default function LoginPage() {
                 Esqueceu a senha?
               </Link>
             </div>
-            <input
-              type="password"
+            <PasswordInput
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
