@@ -36,6 +36,12 @@ cron.schedule('0 0 * * *', async () => {
   await callApi('/api/sync/faturas')
 })
 
+// ── 00:15 todo dia: gera faturas das assinaturas (banco proprio) ─────────
+cron.schedule('15 0 * * *', async () => {
+  console.log('[Cron] Gerando faturas de assinaturas...')
+  await callApi('/api/subscriptions/generate')
+})
+
 // ── Disparo de cobranças: todo início de hora, 8h-20h, Seg-Sáb ───────────
 cron.schedule('0 8,9,10,11,12,13,14,15,16,17,18,19,20 * * 1-6', async () => {
   console.log('[Cron] Executando billing engine...')
@@ -44,6 +50,7 @@ cron.schedule('0 8,9,10,11,12,13,14,15,16,17,18,19,20 * * 1-6', async () => {
 
 console.log('[Cron] Servidor de agendamento iniciado.')
 console.log('[Cron] Schedules ativos:')
-console.log('  - Sync clientes:  6:30 Seg-Sáb')
-console.log('  - Sync faturas:   6:45 Seg-Sáb + meia-noite')
-console.log('  - Billing engine: 8h-20h todo início de hora, Seg-Sáb')
+console.log('  - Sync clientes:        06:30 Seg-Sáb')
+console.log('  - Sync faturas:         06:45 Seg-Sáb + meia-noite')
+console.log('  - Assinaturas manuais:  00:15 todos os dias (gera mensalidades)')
+console.log('  - Billing engine:       8h-20h todo início de hora, Seg-Sáb')
