@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, TrendingUp, CreditCard,
-  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon, FileBarChart, Shield, Stethoscope,
+  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon, FileBarChart, Shield, Stethoscope, Package,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useTheme } from '@/components/theme-provider'
@@ -17,6 +17,7 @@ interface UserInfo {
   email: string
   logo?: string | null
   plan?: Plan
+  erpType?: string
   isSuperAdmin?: boolean
 }
 
@@ -25,11 +26,13 @@ interface NavItem {
   label: string
   icon: React.ElementType
   feature?: Feature
+  requiresManualErp?: boolean
 }
 
 const navItems: NavItem[] = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard, feature: 'dashboard' },
   { href: '/clientes', label: 'Clientes', icon: Users, feature: 'sync_erp' },
+  { href: '/produtos', label: 'Produtos', icon: Package, requiresManualErp: true },
   { href: '/growth', label: 'Growth', icon: TrendingUp, feature: 'dashboard' },
   { href: '/cobrancas', label: 'Cobranças', icon: CreditCard, feature: 'regua_basica' },
   { href: '/inadimplencia', label: 'Inadimplência', icon: AlertTriangle, feature: 'regua_basica' },
@@ -58,7 +61,11 @@ export default function Sidebar() {
     router.refresh()
   }
 
-  const visibleItems = navItems.filter((item) => !item.feature || hasFeature(user?.plan, item.feature))
+  const visibleItems = navItems.filter((item) => {
+    if (item.feature && !hasFeature(user?.plan, item.feature)) return false
+    if (item.requiresManualErp && user?.erpType !== 'manual') return false
+    return true
+  })
 
   return (
     <aside className="fixed left-0 top-0 h-full w-52 bg-[#1e1b4b] flex flex-col z-50">

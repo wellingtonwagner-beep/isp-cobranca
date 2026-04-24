@@ -4,11 +4,12 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle, Download } from 'lucide-react'
+import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle, Download, Plus, Edit2, Trash2 } from 'lucide-react'
 
 interface Client {
   id: string
   name: string
+  cpfCnpj: string | null
   whatsapp: string | null
   phone: string | null
   email: string | null
@@ -17,6 +18,20 @@ interface Client {
   planName: string | null
   syncedAt: string
   _count: { invoices: number; messageLogs: number }
+}
+
+interface ClientForm {
+  name: string
+  cpfCnpj: string
+  email: string
+  phone: string
+  whatsapp: string
+  status: string
+  city: string
+}
+
+const EMPTY_CLIENT_FORM: ClientForm = {
+  name: '', cpfCnpj: '', email: '', phone: '', whatsapp: '', status: 'ativo', city: '',
 }
 
 interface Invoice {
@@ -66,6 +81,13 @@ export default function ClientesPage() {
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [syncCountdown, setSyncCountdown] = useState(0)
 
+  const [erpType, setErpType] = useState<string>('sgp')
+  const [editClient, setEditClient] = useState<Client | null>(null)
+  const [creatingClient, setCreatingClient] = useState(false)
+  const [clientForm, setClientForm] = useState<ClientForm>(EMPTY_CLIENT_FORM)
+  const [savingClient, setSavingClient] = useState(false)
+  const [clientFormError, setClientFormError] = useState<string | null>(null)
+
   const [sendModalClient, setSendModalClient] = useState<Client | null>(null)
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loadingInvoices, setLoadingInvoices] = useState(false)
@@ -92,6 +114,76 @@ export default function ClientesPage() {
   }, [page, q, status])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    fetch('/api/auth/me').then((r) => r.json()).then((d) => {
+      if (d.user?.erpType) setErpType(d.user.erpType)
+    })
+  }, [])
+
+  const isManual = erpType === 'manual'
+
+  function openCreateClient() {
+    setEditClient(null)
+    setClientForm(EMPTY_CLIENT_FORM)
+    setCreatingClient(true)
+    setClientFormError(null)
+  }
+
+  function openEditClient(c: Client) {
+    setEditClient(c)
+    setClientForm({
+      name: c.name,
+      cpfCnpj: c.cpfCnpj || '',
+      email: c.email || '',
+      phone: c.phone || '',
+      whatsapp: c.whatsapp || '',
+      status: c.status,
+      city: c.city || '',
+    })
+    setCreatingClient(true)
+    setClientFormError(null)
+  }
+
+  function closeClientModal() {
+    setCreatingClient(false)
+    setEditClient(null)
+    setClientFormError(null)
+  }
+
+  async function saveClient() {
+    setSavingClient(true)
+    setClientFormError(null)
+    try {
+      const url = editClient ? `/api/clientes/${editClient.id}` : '/api/clientes'
+      const method = editClient ? 'PUT' : 'POST'
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(clientForm),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setClientFormError(d.error || `Erro ${res.status}`)
+        return
+      }
+      closeClientModal()
+      await load()
+    } finally {
+      setSavingClient(false)
+    }
+  }
+
+  async function deleteClient(c: Client) {
+    if (!confirm(`Excluir o cliente "${c.name}"?`)) return
+    const res = await fetch(`/api/clientes/${c.id}`, { method: 'DELETE' })
+    const d = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      alert(d.error || `Erro ${res.status}`)
+      return
+    }
+    await load()
+  }
 
   async function syncClients() {
     setSyncing(true)
@@ -189,9 +281,15 @@ export default function ClientesPage() {
           <Button variant="secondary" size="sm" onClick={() => window.open('/api/export?type=clientes', '_blank')}>
             <Download size={14} /> Exportar CSV
           </Button>
-          <Button size="sm" onClick={syncClients} loading={syncing}>
-            <RefreshCw size={14} /> Sincronizar
-          </Button>
+          {isManual ? (
+            <Button size="sm" onClick={openCreateClient}>
+              <Plus size={14} /> Novo Cliente
+            </Button>
+          ) : (
+            <Button size="sm" onClick={syncClients} loading={syncing}>
+              <RefreshCw size={14} /> Sincronizar
+            </Button>
+          )}
         </div>
       </div>
 
@@ -272,14 +370,34 @@ export default function ClientesPage() {
                         <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 text-xs">{c._count.invoices}</td>
                         <td className="px-4 py-2.5 text-gray-600 dark:text-gray-400 text-xs">{c._count.messageLogs}</td>
                         <td className="px-4 py-2.5 text-right">
-                          <button
-                            onClick={() => openSendModal(c)}
-                            disabled={!c.whatsapp}
-                            title={c.whatsapp ? 'Enviar cobrança manual' : 'Cliente sem WhatsApp'}
-                            className="inline-flex items-center gap-1.5 text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <Send size={12} /> Enviar
-                          </button>
+                          <div className="inline-flex items-center gap-1">
+                            {isManual && (
+                              <>
+                                <button
+                                  onClick={() => openEditClient(c)}
+                                  title="Editar cliente"
+                                  className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-500"
+                                >
+                                  <Edit2 size={14} />
+                                </button>
+                                <button
+                                  onClick={() => deleteClient(c)}
+                                  title="Excluir cliente"
+                                  className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-red-500"
+                                >
+                                  <Trash2 size={14} />
+                                </button>
+                              </>
+                            )}
+                            <button
+                              onClick={() => openSendModal(c)}
+                              disabled={!c.whatsapp}
+                              title={c.whatsapp ? 'Enviar cobrança manual' : 'Cliente sem WhatsApp'}
+                              className="inline-flex items-center gap-1.5 text-xs bg-purple-600 text-white px-3 py-1.5 rounded-lg hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                            >
+                              <Send size={12} /> Enviar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -304,6 +422,142 @@ export default function ClientesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal Criar/Editar cliente (só modo manual) */}
+      {creatingClient && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={closeClientModal}>
+          <div
+            className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {editClient ? 'Editar Cliente' : 'Novo Cliente'}
+              </h2>
+              <button onClick={closeClientModal} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+              <ClientField label="Nome *">
+                <input
+                  className="client-form-input"
+                  value={clientForm.name}
+                  onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                  autoFocus
+                  placeholder="Nome completo"
+                />
+              </ClientField>
+
+              <div className="grid grid-cols-2 gap-3">
+                <ClientField label="CPF / CNPJ">
+                  <input
+                    className="client-form-input"
+                    value={clientForm.cpfCnpj}
+                    onChange={(e) => setClientForm({ ...clientForm, cpfCnpj: e.target.value })}
+                    placeholder="Somente números"
+                  />
+                </ClientField>
+                <ClientField label="Status">
+                  <select
+                    className="client-form-input"
+                    value={clientForm.status}
+                    onChange={(e) => setClientForm({ ...clientForm, status: e.target.value })}
+                  >
+                    <option value="ativo">Ativo</option>
+                    <option value="suspenso">Suspenso</option>
+                    <option value="inadimplente">Inadimplente</option>
+                    <option value="cancelado">Cancelado</option>
+                  </select>
+                </ClientField>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <ClientField label="WhatsApp">
+                  <input
+                    className="client-form-input"
+                    value={clientForm.whatsapp}
+                    onChange={(e) => setClientForm({ ...clientForm, whatsapp: e.target.value })}
+                    placeholder="5537999999999"
+                  />
+                </ClientField>
+                <ClientField label="Telefone (alternativo)">
+                  <input
+                    className="client-form-input"
+                    value={clientForm.phone}
+                    onChange={(e) => setClientForm({ ...clientForm, phone: e.target.value })}
+                    placeholder="(37) 3333-3333"
+                  />
+                </ClientField>
+              </div>
+
+              <ClientField label="E-mail">
+                <input
+                  className="client-form-input"
+                  type="email"
+                  value={clientForm.email}
+                  onChange={(e) => setClientForm({ ...clientForm, email: e.target.value })}
+                  placeholder="cliente@exemplo.com"
+                />
+              </ClientField>
+
+              <ClientField label="Cidade">
+                <input
+                  className="client-form-input"
+                  value={clientForm.city}
+                  onChange={(e) => setClientForm({ ...clientForm, city: e.target.value })}
+                  placeholder="Ex: PIUMHI"
+                />
+              </ClientField>
+
+              {clientFormError && (
+                <div className="px-3 py-2 rounded text-sm bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300 border border-red-200 dark:border-red-700">
+                  {clientFormError}
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 dark:border-gray-700">
+              <button
+                onClick={closeClientModal}
+                className="text-sm px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 font-medium"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={saveClient}
+                disabled={savingClient || !clientForm.name.trim()}
+                className="inline-flex items-center gap-2 text-sm bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:opacity-50"
+              >
+                {savingClient ? <><Loader2 size={14} className="animate-spin" /> Salvando...</> : 'Salvar'}
+              </button>
+            </div>
+          </div>
+
+          <style jsx>{`
+            .client-form-input {
+              width: 100%;
+              padding: 0.5rem 0.75rem;
+              border: 1px solid rgb(229 231 235);
+              border-radius: 0.5rem;
+              font-size: 0.875rem;
+              background: white;
+              color: rgb(17 24 39);
+              outline: none;
+            }
+            .client-form-input:focus {
+              border-color: rgb(168 85 247);
+              box-shadow: 0 0 0 2px rgb(168 85 247 / 0.2);
+            }
+            :global(.dark) .client-form-input {
+              background: rgb(55 65 81);
+              border-color: rgb(75 85 99);
+              color: rgb(229 231 235);
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* Modal de envio manual */}
       {sendModalClient && (
@@ -415,6 +669,15 @@ export default function ClientesPage() {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function ClientField({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
+      {children}
     </div>
   )
 }
