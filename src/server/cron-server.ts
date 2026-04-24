@@ -1,10 +1,19 @@
 import cron from 'node-cron'
 import axios from 'axios'
 
-const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+// Cron-server e Next rodam no MESMO container (via concurrently).
+// Chamar localhost evita problemas de DNS/SSL/firewall quando a URL publica
+// passa por proxy reverso. Para override explicito, use INTERNAL_APP_URL.
+const BASE_URL = process.env.INTERNAL_APP_URL || 'http://localhost:3000'
 const CRON_SECRET = process.env.CRON_SECRET || 'troque-em-producao-123'
 
+function nowStr() {
+  return new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })
+}
+
 async function callApi(path: string, method: 'POST' | 'GET' = 'POST') {
+  const started = Date.now()
+  console.log(`[Cron ${nowStr()}] → ${method} ${path}`)
   try {
     const res = await axios({
       method,
@@ -12,10 +21,17 @@ async function callApi(path: string, method: 'POST' | 'GET' = 'POST') {
       headers: { 'x-cron-secret': CRON_SECRET },
       timeout: 120_000,
     })
-    console.log(`[Cron] ${path} → ${res.status}`, res.data?.result || '')
+    const ms = Date.now() - started
+    const summary = typeof res.data === 'object' ? JSON.stringify(res.data).slice(0, 300) : ''
+    console.log(`[Cron ${nowStr()}] ← ${res.status} ${path} (${ms}ms) ${summary}`)
   } catch (err: unknown) {
-    const error = err as { message?: string; response?: { status: number; data: unknown } }
-    console.error(`[Cron] Erro em ${path}:`, error?.response?.data || error?.message)
+    const ms = Date.now() - started
+    const error = err as { code?: string; message?: string; response?: { status: number; data: unknown } }
+    console.error(
+      `[Cron ${nowStr()}] X ${path} (${ms}ms)`,
+      error?.response?.status || error?.code || '',
+      error?.response?.data || error?.message,
+    )
   }
 }
 
@@ -48,7 +64,10 @@ cron.schedule('0 8,9,10,11,12,13,14,15,16,17,18,19,20 * * 1-6', async () => {
   await callApi('/api/cron')
 })
 
-console.log('[Cron] Servidor de agendamento iniciado.')
+console.log(`[Cron ${nowStr()}] Servidor de agendamento iniciado.`)
+console.log(`[Cron] BASE_URL = ${BASE_URL}`)
+console.log(`[Cron] CRON_SECRET = ${CRON_SECRET ? '***' + CRON_SECRET.slice(-4) : '(vazio)'}`)
+console.log(`[Cron] Timezone = ${process.env.TZ || 'UTC (default)'}`)
 console.log('[Cron] Schedules ativos:')
 console.log('  - Sync clientes:        06:30 Seg-Sáb')
 console.log('  - Sync faturas:         06:45 Seg-Sáb + meia-noite')
