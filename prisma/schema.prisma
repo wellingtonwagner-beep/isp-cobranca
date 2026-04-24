@@ -248,6 +248,21 @@ model Config {
   @@map("config")
 }
 
+// ─── Tokens de redefinicao de senha ────────────────────────────────────────
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  companyId String
+  token     String   @unique
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([expiresAt])
+  @@map("password_reset_tokens")
+}
+
 // ─── Feriados por empresa ─────────────────────────────────────────────────────
 
 model Holiday {

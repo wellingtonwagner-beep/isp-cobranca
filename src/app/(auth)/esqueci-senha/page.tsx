@@ -1,38 +1,30 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-export default function LoginPage() {
-  const router = useRouter()
+export default function EsqueciSenhaPage() {
   const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
-    setError('')
-
+    setMsg(null)
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/forgot-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email }),
       })
-
       const data = await res.json()
-
-      if (!res.ok) {
-        setError(data.error || 'E-mail ou senha inválidos.')
-      } else {
-        router.push('/')
-        router.refresh()
-      }
+      setMsg({
+        ok: !!data.ok,
+        text: data.message || data.error || 'Erro inesperado.',
+      })
     } catch {
-      setError('Erro de conexão. Tente novamente.')
+      setMsg({ ok: false, text: 'Erro de conexão.' })
     } finally {
       setLoading(false)
     }
@@ -45,11 +37,14 @@ export default function LoginPage() {
           <span className="text-purple-300">ISP</span>
           <span className="text-white ml-1">Cobrança</span>
         </div>
-        <p className="text-purple-300 text-sm mt-2">Gestão de cobranças via WhatsApp</p>
+        <p className="text-purple-300 text-sm mt-2">Recuperação de senha</p>
       </div>
 
       <div className="bg-white rounded-2xl shadow-2xl p-8">
-        <h1 className="text-xl font-bold text-gray-900 mb-6">Entrar</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-2">Esqueci minha senha</h1>
+        <p className="text-sm text-gray-600 mb-6">
+          Informe o e-mail cadastrado da empresa. Vamos gerar um link de redefinição.
+        </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -64,25 +59,10 @@ export default function LoginPage() {
             />
           </div>
 
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="block text-sm font-medium text-gray-700">Senha</label>
-              <Link href="/esqueci-senha" className="text-xs text-purple-700 hover:underline">
-                Esqueceu a senha?
-              </Link>
-            </div>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-              placeholder="••••••••"
-            />
-          </div>
-
-          {error && (
-            <p className="text-red-600 text-sm bg-red-50 px-3 py-2 rounded-lg">{error}</p>
+          {msg && (
+            <p className={`text-sm px-3 py-2 rounded-lg ${msg.ok ? 'bg-green-50 text-green-800' : 'bg-red-50 text-red-700'}`}>
+              {msg.text}
+            </p>
           )}
 
           <button
@@ -90,14 +70,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-[#1e1b4b] hover:bg-[#312e81] text-white font-semibold py-2.5 rounded-lg text-sm transition-colors disabled:opacity-60"
           >
-            {loading ? 'Entrando...' : 'Entrar'}
+            {loading ? 'Enviando...' : 'Enviar link de redefinição'}
           </button>
         </form>
 
         <p className="text-center text-sm text-gray-500 mt-6">
-          Não tem conta?{' '}
-          <Link href="/register" className="text-purple-700 font-medium hover:underline">
-            Cadastre sua empresa
+          Lembrou?{' '}
+          <Link href="/login" className="text-purple-700 font-medium hover:underline">
+            Voltar ao login
           </Link>
         </p>
       </div>
