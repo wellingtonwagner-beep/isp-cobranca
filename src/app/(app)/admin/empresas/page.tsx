@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Shield, RefreshCw } from 'lucide-react'
+import { Shield, RefreshCw, Eraser, X, AlertTriangle, Loader2 } from 'lucide-react'
 import { PLAN_LABELS, type Plan } from '@/lib/plans'
 import { formatDateBR } from '@/lib/utils'
 
@@ -25,6 +25,12 @@ export default function AdminEmpresasPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [updating, setUpdating] = useState<string | null>(null)
+
+  // Modal de wipe
+  const [wipeTarget, setWipeTarget] = useState<Company | null>(null)
+  const [wipeConfirm, setWipeConfirm] = useState('')
+  const [wiping, setWiping] = useState(false)
+  const [wipeResult, setWipeResult] = useState<{ ok: boolean; text: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -80,6 +86,37 @@ export default function AdminEmpresasPage() {
     }
   }
 
+  function openWipe(c: Company) {
+    setWipeTarget(c)
+    setWipeConfirm('')
+    setWipeResult(null)
+  }
+
+  function closeWipe() {
+    setWipeTarget(null)
+    setWipeConfirm('')
+  }
+
+  async function executeWipe() {
+    if (!wipeTarget) return
+    setWiping(true)
+    setWipeResult(null)
+    try {
+      const res = await fetch(`/api/admin/empresas/${wipeTarget.id}/wipe`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: wipeConfirm }),
+      })
+      const data = await res.json().catch(() => ({}))
+      setWipeResult({ ok: !!data.ok, text: data.message || data.error || `Erro ${res.status}` })
+      if (data.ok) await load()
+    } catch (err) {
+      setWipeResult({ ok: false, text: String(err) })
+    } finally {
+      setWiping(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -132,6 +169,7 @@ export default function AdminEmpresasPage() {
                     <th className="px-4 py-2 text-center">Mensagens</th>
                     <th className="px-4 py-2 text-left">Plano</th>
                     <th className="px-4 py-2 text-left">Status</th>
+                    <th className="px-4 py-2 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -168,6 +206,15 @@ export default function AdminEmpresasPage() {
                           </Badge>
                         </button>
                       </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <button
+                          onClick={() => openWipe(c)}
+                          title="Apagar todos os dados operacionais (clientes, faturas, mensagens, etc.)"
+                          className="inline-flex items-center gap-1 text-xs text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 px-2 py-1 rounded"
+                        >
+                          <Eraser size={12} /> Limpar dados
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -176,6 +223,64 @@ export default function AdminEmpresasPage() {
           ) : null}
         </CardContent>
       </Card>
+
+      {/* Modal de wipe */}
+      {wipeTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4" onClick={() => !wiping && closeWipe()}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl w-full max-w-md overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Limpar dados da empresa</h2>
+              </div>
+              <button onClick={closeWipe} disabled={wiping} className="text-gray-400 hover:text-gray-600">
+                <X size={20} />
+              </button>
+            </div>
+            <div className="px-5 py-4 space-y-3">
+              <div className="p-3 rounded-lg bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700 text-sm text-red-800 dark:text-red-300">
+                <strong>Atenção:</strong> esta ação apaga <strong>todos os dados operacionais</strong> da empresa
+                <strong> &quot;{wipeTarget.name}&quot;</strong>:
+                clientes, faturas, mensagens, produtos, assinaturas, feriados e configurações extras.
+                A empresa e suas credenciais (CNPJ, e-mail, ERP, WhatsApp, PIX) serão preservadas.
+                <br /><br />
+                <strong>Não é possível desfazer.</strong>
+              </div>
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Atualmente: <strong>{wipeTarget._count.clients}</strong> clientes, <strong>{wipeTarget._count.invoices}</strong> faturas, <strong>{wipeTarget._count.messageLogs}</strong> mensagens.
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Para confirmar, digite o nome exato da empresa:
+                </label>
+                <div className="text-xs text-gray-500 mb-1 font-mono">{wipeTarget.name}</div>
+                <input
+                  className="w-full px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-lg text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200"
+                  value={wipeConfirm}
+                  onChange={(e) => setWipeConfirm(e.target.value)}
+                  placeholder="Digite o nome..."
+                  autoFocus
+                />
+              </div>
+              {wipeResult && (
+                <div className={`px-3 py-2 rounded text-sm ${wipeResult.ok ? 'bg-green-50 dark:bg-green-900/20 text-green-800 dark:text-green-300' : 'bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-300'}`}>
+                  {wipeResult.text}
+                </div>
+              )}
+            </div>
+            <div className="flex items-center justify-end gap-2 px-5 py-4 border-t border-gray-100 dark:border-gray-700">
+              <button onClick={closeWipe} disabled={wiping} className="text-sm px-4 py-2 text-gray-600 dark:text-gray-400 font-medium">Cancelar</button>
+              <button
+                onClick={executeWipe}
+                disabled={wiping || wipeConfirm !== wipeTarget.name}
+                className="inline-flex items-center gap-2 text-sm bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50"
+              >
+                {wiping ? <><Loader2 size={14} className="animate-spin" /> Apagando...</> : <><Eraser size={14} /> Apagar dados</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
