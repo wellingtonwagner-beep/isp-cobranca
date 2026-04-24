@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(curl -s -L --max-time 30 \"https://wiki.hubsoft.com.br/pt-br/home\")",
+      "WebFetch(domain:docs.hubsoft.com.br)",
+      "WebFetch(domain:wiki.hubsoft.com.br)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Bash(curl -s -L --max-time 30 \"https://docs.hubsoft.com.br/view/metadata/2sA35LUysW\")",
+      "Bash(python3 -c \" import json, sys data = json.load\\(sys.stdin\\) print\\(json.dumps\\(data, indent=2\\)[:5000]\\) \")",
+      "Bash(python3 -c \" import json, sys data = json.load\\(sys.stdin\\) print\\(list\\(data.keys\\(\\)\\)\\) col = data.get\\('collection', {}\\) print\\(list\\(col.keys\\(\\)\\)\\) \")",
+      "Bash(curl -s -L --max-time 60 \"https://docs.hubsoft.com.br/api/collections/23327122/2sA35LUysW?segregateAuth=true&versionTag=latest\")",
+      "Bash(python3 -c \" import json, sys data = json.load\\(sys.stdin\\) col = data.get\\('collection', data\\) items = col.get\\('item', col.get\\('items', []\\)\\) def print_items\\(items, indent=0\\): if isinstance\\(items, list\\): for item in items: name = item.get\\('name', 'unknown'\\) subitems = item.get\\('item', []\\) if subitems: print\\(' ' * indent + f'[FOLDER] {name}'\\) print_items\\(subitems, indent + 2\\) else: method = '' req = item.get\\('request', {}\\) if isinstance\\(req, dict\\): method = req.get\\('method', ''\\) url = req.get\\('url', ''\\) if isinstance\\(url, dict\\): url = '/'.join\\(url.get\\('path', []\\)\\) print\\(' ' * indent + f'{method} {name} -> {url}'\\) print_items\\(items\\) \")",
+      "Bash(git status *)",
+      "Bash(npx next *)",
+      "Bash(pandoc --version)",
+      "Bash(npx --yes md-to-pdf docs/MANUAL.md)"
+    ],
+    "additionalDirectories": [
+      "c:\\projetos\\isp-cobranca\\src\\app\\api\\relatorios",
+      "c:\\projetos\\isp-cobranca\\src\\app\\api\\produtos",
+      "c:\\projetos\\isp-cobranca\\src\\app\\api\\invoices\\[id]",
+      "c:\\projetos\\isp-cobranca\\src\\app\\api\\subscriptions",
+      "c:\\projetos\\isp-cobranca\\src\\app\\api\\admin\\empresas",
+      "c:\\projetos\\isp-cobranca\\src\\app\\api\\admin\\admins"
+    ]
+  }
+}

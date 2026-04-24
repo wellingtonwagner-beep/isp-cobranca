@@ -248,6 +248,21 @@ model Config {
   @@map("config")
 }
 
+// ─── Super administradores do sistema (gerenciam todas as empresas) ───────
+
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  name         String
+  passwordHash String
+  active       Boolean   @default(true)
+  lastLoginAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  @@map("admin_users")
+}
+
 // ─── Tokens de redefinicao de senha ────────────────────────────────────────
 
 model PasswordResetToken {

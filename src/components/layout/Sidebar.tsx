@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import {
   LayoutDashboard, Users, TrendingUp, CreditCard,
-  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon, FileBarChart, Shield, Stethoscope, Package, Receipt, Repeat,
+  AlertTriangle, GitBranch, Settings, LogOut, Sun, Moon, FileBarChart, Stethoscope, Package, Receipt, Repeat,
 } from 'lucide-react'
 import { clsx } from 'clsx'
 import { useTheme } from '@/components/theme-provider'
@@ -18,7 +18,6 @@ interface UserInfo {
   logo?: string | null
   plan?: Plan
   erpType?: string
-  isSuperAdmin?: boolean
 }
 
 interface NavItem {
@@ -105,15 +104,6 @@ export default function Sidebar() {
             </Link>
           )
         })}
-        {user?.isSuperAdmin && (
-          <Link
-            href="/admin/empresas"
-            className={clsx('sidebar-item', pathname.startsWith('/admin') ? 'active' : 'text-amber-300')}
-          >
-            <Shield size={16} />
-            <span>Admin</span>
-          </Link>
-        )}
       </nav>
 
       {/* Footer */}

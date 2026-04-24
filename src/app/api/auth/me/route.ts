@@ -24,7 +24,6 @@ export async function GET() {
       logo: company?.logo ?? null,
       plan: company?.plan ?? 'lite',
       erpType: settings?.erpType ?? 'sgp',
-      isSuperAdmin: !!process.env.SUPER_ADMIN_EMAIL && session.email === process.env.SUPER_ADMIN_EMAIL,
     },
   })
 }

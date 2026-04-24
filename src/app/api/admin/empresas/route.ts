@@ -3,15 +3,13 @@
  * PATCH /api/admin/empresas      — atualiza plano de uma empresa { id, plan }
  */
 import { NextRequest, NextResponse } from 'next/server'
-import { getSessionFromCookie } from '@/lib/jwt'
+import { getAdminSessionFromCookie } from '@/lib/admin-jwt'
 import { prisma } from '@/lib/prisma'
 import { PLAN_FEATURES, type Plan } from '@/lib/plans'
 
 async function requireSuperAdmin() {
-  const session = await getSessionFromCookie()
+  const session = await getAdminSessionFromCookie()
   if (!session) return { ok: false as const, status: 401 }
-  const expected = process.env.SUPER_ADMIN_EMAIL
-  if (!expected || session.email !== expected) return { ok: false as const, status: 403 }
   return { ok: true as const, session }
 }
 
