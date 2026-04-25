@@ -58,6 +58,13 @@ cron.schedule('15 0 * * *', async () => {
   await callApi('/api/subscriptions/generate')
 })
 
+// ── Pre-sync 5min antes de cada disparo: garante estado fresco do ERP ────
+// Roda 7:55, 8:55, ..., 19:55 (Seg-Sáb) → billing engine logo a seguir.
+cron.schedule('55 7,8,9,10,11,12,13,14,15,16,17,18,19 * * 1-6', async () => {
+  console.log('[Cron] Pre-sync de faturas (antes do billing)...')
+  await callApi('/api/sync/faturas')
+})
+
 // ── Disparo de cobranças: todo início de hora, 8h-20h, Seg-Sáb ───────────
 cron.schedule('0 8,9,10,11,12,13,14,15,16,17,18,19,20 * * 1-6', async () => {
   console.log('[Cron] Executando billing engine...')
@@ -70,6 +77,6 @@ console.log(`[Cron] CRON_SECRET = ${CRON_SECRET ? '***' + CRON_SECRET.slice(-4) 
 console.log(`[Cron] Timezone = ${process.env.TZ || 'UTC (default)'}`)
 console.log('[Cron] Schedules ativos:')
 console.log('  - Sync clientes:        06:30 Seg-Sáb')
-console.log('  - Sync faturas:         06:45 Seg-Sáb + meia-noite')
+console.log('  - Sync faturas:         06:45 Seg-Sáb + meia-noite + pre-sync 7:55-19:55 Seg-Sáb')
 console.log('  - Assinaturas manuais:  00:15 todos os dias (gera mensalidades)')
 console.log('  - Billing engine:       8h-20h todo início de hora, Seg-Sáb')
