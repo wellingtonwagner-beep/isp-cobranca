@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
 
     const { searchParams } = req.nextUrl
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = 50
+    const limit = 10
 
     const minDays = parseInt(searchParams.get('minDays') || '0')
     const maxDays = searchParams.get('maxDays') ? parseInt(searchParams.get('maxDays')!) : null

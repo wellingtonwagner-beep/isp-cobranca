@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     const from = searchParams.get('from') || ''
     const to = searchParams.get('to') || ''
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = 25
+    const limit = 10
 
     const where: Record<string, unknown> = { companyId }
     if (status) where.status = status

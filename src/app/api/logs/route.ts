@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     const clientId = searchParams.get('clientId') || ''
     const date = searchParams.get('date') || ''
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = 50
+    const limit = 10
 
     const where: Record<string, unknown> = { companyId }
     if (stage) where.stage = stage

@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
     const q = searchParams.get('q') || ''
     const order = searchParams.get('order') || 'oldest' // oldest | amount
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
-    const limit = 25
+    const limit = 10
 
     const today = new Date()
     const cutoff = new Date(today.getTime() - 60 * 86400000)
