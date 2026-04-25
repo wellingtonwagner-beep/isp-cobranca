@@ -69,10 +69,11 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
   // (negativação, jurídico, suspensão) — não disparamos cobrança automatica.
   const cutoffDate = addDaysBRT(parseDate(today), -60)
   const cutoffDateStr = dateToBRTString(cutoffDate)
+  // Considera apenas faturas em aberto ou vencidas (exclui 'cancelada' e 'paga')
   const blockedInvoices = await prisma.invoice.findMany({
     where: {
       companyId,
-      status: { not: 'paga' },
+      status: { in: ['aberta', 'vencida'] },
       dueDate: { lt: new Date(`${cutoffDateStr}T00:00:00.000Z`) },
     },
     select: { clientId: true },
