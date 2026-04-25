@@ -116,19 +116,26 @@ export async function runDailyCheck(companyId: string): Promise<BillingEngineRes
         stageResult.skipped++
         continue
       }
-      if (invoice.client.cpfCnpj && (sgpClient || hubsoftClient)) {
-        try {
-          const paid = sgpClient
-            ? await sgpClient.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
-            : await hubsoftClient!.checkInvoicePaid(invoice.client.cpfCnpj, invoice.externalId || invoice.id)
-          if (paid) {
-            await prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'paga' } })
-            stageResult.skipped++
-            continue
-          }
-        } catch {
-          // Se falhar consulta ao ERP, segue com status local
+      // Pre-send check: valida status real no ERP antes de cobrar.
+      // Skip em qualquer status que nao seja 'open'. 'unknown' (erro de rede)
+      // segue com status local — fail-safe pra nao bloquear cobranca legitima
+      // quando o ERP esta fora do ar.
+      if (invoice.client.cpfCnpj && invoice.externalId && (sgpClient || hubsoftClient)) {
+        const status = sgpClient
+          ? await sgpClient.checkInvoiceStatus(invoice.client.cpfCnpj, invoice.externalId)
+          : await hubsoftClient!.checkInvoiceStatus(invoice.client.cpfCnpj, invoice.externalId)
+        if (status === 'paid') {
+          await prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'paga' } })
+          stageResult.skipped++
+          continue
         }
+        if (status === 'cancelled' || status === 'not_found') {
+          await prisma.invoice.update({ where: { id: invoice.id }, data: { status: 'cancelada' } })
+          console.log(`[BillingEngine][${companyId}] Fatura ${invoice.externalId} (${invoice.client.name}) status=${status} no ERP — marcada como cancelada localmente, nao sera cobrada.`)
+          stageResult.skipped++
+          continue
+        }
+        // 'open' ou 'unknown' → segue
       }
       invoicesToSend.push(invoice)
     }

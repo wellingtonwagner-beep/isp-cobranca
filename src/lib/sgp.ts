@@ -360,6 +360,41 @@ export class SGPClient_ {
     }
   }
 
+  /**
+   * Consulta o status atual de uma fatura no SGP.
+   * Usado pelo billing engine para validar antes de cobrar e pelo sync
+   * para reconciliar status local com remoto.
+   *
+   * Retorna 'unknown' em caso de erro de rede para o caller decidir (fail-safe).
+   * Retorna 'not_found' quando a fatura nao aparece em nenhum status pesquisado.
+   */
+  async checkInvoiceStatus(
+    cpfcnpj: string,
+    invoiceId: string,
+  ): Promise<'open' | 'paid' | 'cancelled' | 'not_found' | 'unknown'> {
+    try {
+      // Sem statusId: retorna abertas (1) e pagas (2)
+      const faturas = await this.getFaturasByCliente(cpfcnpj)
+      const fatura = faturas.find(
+        f => String(f.id) === invoiceId || String(f.numero_documento) === invoiceId,
+      )
+      if (fatura) {
+        if (fatura.statusid === 1) return 'open'
+        if (fatura.statusid === 2) return 'paid'
+        if (fatura.statusid === 3) return 'cancelled'
+      }
+      // Nao apareceu em abertas/pagas — checa canceladas explicitamente
+      const canceladas = await this.getFaturasByCliente(cpfcnpj, 3)
+      const cancel = canceladas.find(
+        f => String(f.id) === invoiceId || String(f.numero_documento) === invoiceId,
+      )
+      if (cancel) return 'cancelled'
+      return 'not_found'
+    } catch {
+      return 'unknown'
+    }
+  }
+
   // ---------------------------------------------------------------------------
   // URA — Detalhes de um cliente específico
   // POST /api/ura/consultacliente/

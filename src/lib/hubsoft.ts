@@ -231,6 +231,27 @@ export class HubSoftClient {
     }
   }
 
+  /**
+   * Consulta o status atual de uma fatura no HubSoft.
+   * A API de pendentes nao retorna canceladas, entao 'not_found' significa
+   * que a fatura foi paga, cancelada ou simplesmente nao existe mais — em
+   * qualquer caso, nao deve receber cobranca.
+   */
+  async checkInvoiceStatus(
+    cpfCnpj: string,
+    idFatura: string,
+  ): Promise<'open' | 'paid' | 'cancelled' | 'not_found' | 'unknown'> {
+    try {
+      const faturas = await this.getFaturasPendentes('cpf_cnpj', cpfCnpj.replace(/\D/g, ''))
+      const fatura = faturas.find((f) => String(f.id_fatura) === idFatura)
+      if (!fatura) return 'not_found'
+      if (fatura.quitado === true) return 'paid'
+      return 'open'
+    } catch {
+      return 'unknown'
+    }
+  }
+
   // ── Helpers ─────────────────────────────────────────────────────────────
 
   pickBestPhone(cliente: HubSoftCliente): string | null {
