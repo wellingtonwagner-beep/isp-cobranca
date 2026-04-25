@@ -80,6 +80,45 @@ export async function GET(req: NextRequest) {
       return csvResponse(toCsv(headers, rows), 'inadimplencia')
     }
 
+    if (type === 'bloqueados') {
+      const today = new Date()
+      const cutoff = new Date(today.getTime() - 60 * 86400000)
+      const oldInvoices = await prisma.invoice.findMany({
+        where: { companyId, status: { in: ['aberta', 'vencida'] }, dueDate: { lt: cutoff } },
+        select: { clientId: true },
+        distinct: ['clientId'],
+      })
+      const clientIds = oldInvoices.map((i) => i.clientId)
+      const clients = await prisma.client.findMany({
+        where: { id: { in: clientIds } },
+        select: { id: true, name: true, whatsapp: true, cpfCnpj: true, status: true, planName: true },
+        orderBy: { name: 'asc' },
+      })
+      const headers = ['Cliente', 'CPF/CNPJ', 'WhatsApp', 'Plano', 'Status', 'Faturas em atraso', 'Total devido', 'Vencimento mais antigo', 'Dias de atraso']
+      const rows = await Promise.all(clients.map(async (c) => {
+        const agg = await prisma.invoice.aggregate({
+          where: { clientId: c.id, status: { in: ['aberta', 'vencida'] } },
+          _sum: { amount: true },
+          _count: true,
+          _min: { dueDate: true },
+        })
+        const oldest = agg._min.dueDate
+        const days = oldest ? Math.floor((today.getTime() - oldest.getTime()) / 86400000) : 0
+        return [
+          c.name,
+          c.cpfCnpj || '',
+          c.whatsapp || '',
+          c.planName || '',
+          c.status,
+          String(agg._count),
+          formatCurrency(agg._sum.amount || 0),
+          oldest ? formatDateBR(oldest) : '',
+          String(days),
+        ]
+      }))
+      return csvResponse(toCsv(headers, rows), 'clientes_bloqueados_60d')
+    }
+
     if (type === 'cobrancas') {
       const from = req.nextUrl.searchParams.get('from')
       const to = req.nextUrl.searchParams.get('to')

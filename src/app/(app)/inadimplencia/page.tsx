@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { AlertTriangle, RefreshCw, Download, Search, Filter } from 'lucide-react'
+import { AlertTriangle, RefreshCw, Download, Search, Filter, AlertOctagon } from 'lucide-react'
+import Link from 'next/link'
 import { formatDateBR, formatCurrency } from '@/lib/utils'
 
 interface InadimplenciaInvoice {
@@ -64,6 +65,12 @@ export default function InadimplenciaPage() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{total} faturas em atraso</p>
         </div>
         <div className="flex gap-2">
+          <Link
+            href="/inadimplencia/bloqueados"
+            className="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-md border border-red-200 dark:border-red-700 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
+          >
+            <AlertOctagon size={14} /> Bloqueados (&gt;60d)
+          </Link>
           <Button variant="secondary" size="sm" onClick={() => window.open('/api/export?type=inadimplencia', '_blank')}>
             <Download size={14} /> Exportar CSV
           </Button>
