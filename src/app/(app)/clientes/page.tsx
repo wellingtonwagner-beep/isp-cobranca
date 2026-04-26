@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle, Download, Plus, Edit2, Trash2 } from 'lucide-react'
+import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle, Download, Plus, Edit2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 
 interface Client {
   id: string
@@ -76,6 +76,8 @@ export default function ClientesPage() {
   const [pages, setPages] = useState(1)
   const [q, setQ] = useState('')
   const [status, setStatus] = useState('')
+  const [sortBy, setSortBy] = useState<'name' | 'whatsapp' | 'city' | 'status' | 'invoices' | 'messageLogs'>('name')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState<{ ok: boolean; text: string } | null>(null)
@@ -100,7 +102,7 @@ export default function ClientesPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ page: String(page) })
+      const params = new URLSearchParams({ page: String(page), sortBy, sortDir })
       if (q) params.set('q', q)
       if (status) params.set('status', status)
       const res = await fetch(`/api/clientes?${params}`)
@@ -111,7 +113,17 @@ export default function ClientesPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, q, status])
+  }, [page, q, status, sortBy, sortDir])
+
+  function toggleSort(field: typeof sortBy) {
+    if (sortBy === field) {
+      setSortDir(sortDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortBy(field)
+      setSortDir('asc')
+    }
+    setPage(1)
+  }
 
   useEffect(() => { load() }, [load])
 
@@ -344,12 +356,12 @@ export default function ClientesPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
-                      <th className="px-4 py-2 text-left">Nome</th>
-                      <th className="px-4 py-2 text-left">WhatsApp</th>
-                      <th className="px-4 py-2 text-left">Cidade</th>
-                      <th className="px-4 py-2 text-left">Status</th>
-                      <th className="px-4 py-2 text-left">Faturas</th>
-                      <th className="px-4 py-2 text-left">Mensagens</th>
+                      <SortableTh field="name" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}>Nome</SortableTh>
+                      <SortableTh field="whatsapp" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}>WhatsApp</SortableTh>
+                      <SortableTh field="city" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}>Cidade</SortableTh>
+                      <SortableTh field="status" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}>Status</SortableTh>
+                      <SortableTh field="invoices" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}>Faturas</SortableTh>
+                      <SortableTh field="messageLogs" sortBy={sortBy} sortDir={sortDir} onSort={toggleSort}>Mensagens</SortableTh>
                       <th className="px-4 py-2 text-right">Ações</th>
                     </tr>
                   </thead>
@@ -679,5 +691,31 @@ function ClientField({ label, children }: { label: string; children: React.React
       <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">{label}</label>
       {children}
     </div>
+  )
+}
+
+type SortField = 'name' | 'whatsapp' | 'city' | 'status' | 'invoices' | 'messageLogs'
+
+function SortableTh({
+  field, sortBy, sortDir, onSort, children,
+}: {
+  field: SortField
+  sortBy: SortField
+  sortDir: 'asc' | 'desc'
+  onSort: (f: SortField) => void
+  children: React.ReactNode
+}) {
+  const active = sortBy === field
+  const Icon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
+  return (
+    <th className="px-4 py-2 text-left">
+      <button
+        onClick={() => onSort(field)}
+        className={`inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200 transition-colors ${active ? 'text-purple-600 dark:text-purple-400' : ''}`}
+      >
+        {children}
+        <Icon size={11} className={active ? '' : 'opacity-40'} />
+      </button>
+    </th>
   )
 }

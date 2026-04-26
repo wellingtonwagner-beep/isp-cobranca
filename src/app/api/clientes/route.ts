@@ -63,6 +63,17 @@ export async function GET(req: NextRequest) {
     const page = Math.max(1, parseInt(searchParams.get('page') || '1'))
     const limit = 10
 
+    // Whitelist de campos ordenaveis (evita SQL injection / acesso indevido)
+    const sortBy = searchParams.get('sortBy') || 'name'
+    const sortDir = searchParams.get('sortDir') === 'desc' ? 'desc' : 'asc'
+    let orderBy: Record<string, unknown> = { name: 'asc' }
+    if (sortBy === 'name') orderBy = { name: sortDir }
+    else if (sortBy === 'whatsapp') orderBy = { whatsapp: sortDir }
+    else if (sortBy === 'city') orderBy = { city: sortDir }
+    else if (sortBy === 'status') orderBy = { status: sortDir }
+    else if (sortBy === 'invoices') orderBy = { invoices: { _count: sortDir } }
+    else if (sortBy === 'messageLogs') orderBy = { messageLogs: { _count: sortDir } }
+
     const where: Record<string, unknown> = { companyId }
 
     if (q) {
@@ -81,7 +92,7 @@ export async function GET(req: NextRequest) {
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { name: 'asc' },
+        orderBy,
         include: {
           _count: { select: { invoices: true, messageLogs: true } },
         },
