@@ -37,12 +37,23 @@ export async function GET(req: NextRequest) {
       where.client = { name: { contains: q, mode: 'insensitive' } }
     }
 
+    // Whitelist de sort. daysOverdue mapeia para dueDate ordem inversa
+    // (mais dias de atraso = dueDate mais antiga).
+    const sortBy = searchParams.get('sortBy') || 'dueDate'
+    const sortDir = searchParams.get('sortDir') === 'desc' ? 'desc' : 'asc'
+    let orderBy: Record<string, unknown> = { dueDate: 'asc' }
+    if (sortBy === 'dueDate') orderBy = { dueDate: sortDir }
+    else if (sortBy === 'amount') orderBy = { amount: sortDir }
+    else if (sortBy === 'client') orderBy = { client: { name: sortDir } }
+    else if (sortBy === 'clientStatus') orderBy = { client: { status: sortDir } }
+    else if (sortBy === 'daysOverdue') orderBy = { dueDate: sortDir === 'asc' ? 'desc' : 'asc' }
+
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: { dueDate: 'asc' },
+        orderBy,
         include: {
           client: { select: { id: true, name: true, whatsapp: true, phone: true, status: true } },
           messageLogs: {

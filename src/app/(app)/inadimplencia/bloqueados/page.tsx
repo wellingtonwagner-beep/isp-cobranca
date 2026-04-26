@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Search, Download, AlertOctagon, Send } from 'lucide-react'
 import { formatCurrency, formatDateBR } from '@/lib/utils'
+import { SortableTh, toggleSort, type SortDir } from '@/components/ui/sortable-th'
 
 interface Row {
   clientId: string
@@ -32,13 +33,19 @@ export default function BloqueadosPage() {
   const [pages, setPages] = useState(1)
   const [page, setPage] = useState(1)
   const [q, setQ] = useState('')
-  const [order, setOrder] = useState<'oldest' | 'amount'>('oldest')
   const [loading, setLoading] = useState(true)
+  type SortField = 'name' | 'whatsapp' | 'planName' | 'openInvoices' | 'totalOwed' | 'oldestDueDate' | 'daysOverdue' | 'lastSent'
+  const [sortBy, setSortBy] = useState<SortField>('daysOverdue')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  function handleSort(f: SortField) {
+    const next = toggleSort({ sortBy, sortDir }, f)
+    setSortBy(next.sortBy); setSortDir(next.sortDir); setPage(1)
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ page: String(page), order })
+      const params = new URLSearchParams({ page: String(page), sortBy, sortDir })
       if (q) params.set('q', q)
       const res = await fetch(`/api/inadimplencia/bloqueados?${params}`)
       if (res.ok) {
@@ -48,7 +55,7 @@ export default function BloqueadosPage() {
         setPages(d.pages || 1)
       }
     } finally { setLoading(false) }
-  }, [page, q, order])
+  }, [page, q, sortBy, sortDir])
 
   useEffect(() => { load() }, [load])
 
@@ -82,14 +89,7 @@ export default function BloqueadosPage() {
               onChange={(e) => { setQ(e.target.value); setPage(1) }}
             />
           </div>
-          <select
-            className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
-            value={order}
-            onChange={(e) => setOrder(e.target.value as 'oldest' | 'amount')}
-          >
-            <option value="oldest">Mais antigos primeiro</option>
-            <option value="amount">Maiores valores primeiro</option>
-          </select>
+          <span className="text-xs text-gray-400">Clique nas colunas da tabela para ordenar</span>
         </CardContent>
       </Card>
 
@@ -108,14 +108,14 @@ export default function BloqueadosPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
-                      <th className="px-4 py-2 text-left">Cliente</th>
-                      <th className="px-4 py-2 text-left">WhatsApp</th>
-                      <th className="px-4 py-2 text-left">Plano</th>
-                      <th className="px-4 py-2 text-center">Faturas</th>
-                      <th className="px-4 py-2 text-right">Total devido</th>
-                      <th className="px-4 py-2 text-center">Mais antiga</th>
-                      <th className="px-4 py-2 text-center">Dias</th>
-                      <th className="px-4 py-2 text-left">Última msg</th>
+                      <SortableTh field="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Cliente</SortableTh>
+                      <SortableTh field="whatsapp" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>WhatsApp</SortableTh>
+                      <SortableTh field="planName" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Plano</SortableTh>
+                      <SortableTh field="openInvoices" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Faturas</SortableTh>
+                      <SortableTh field="totalOwed" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="right">Total devido</SortableTh>
+                      <SortableTh field="oldestDueDate" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Mais antiga</SortableTh>
+                      <SortableTh field="daysOverdue" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Dias</SortableTh>
+                      <SortableTh field="lastSent" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Última msg</SortableTh>
                     </tr>
                   </thead>
                   <tbody>

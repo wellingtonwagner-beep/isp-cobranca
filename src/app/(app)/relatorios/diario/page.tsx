@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CheckCircle, XCircle, PhoneOff, Copy, FlaskConical, CircleDollarSign, Download, RefreshCw, Send } from 'lucide-react'
 import { formatCurrency } from '@/lib/utils'
+import { SortableTh, toggleSort, type SortDir } from '@/components/ui/sortable-th'
 
 const RETRYABLE_STATUS = new Set(['failed', 'blocked_duplicate', 'blocked_window', 'blocked_holiday', 'skipped_no_phone'])
 
@@ -79,6 +80,22 @@ export default function RelatorioDiarioPage() {
   const [failedPage, setFailedPage] = useState(1)
   const [logsPage, setLogsPage] = useState(1)
   const PAGE_SIZE = 10
+
+  type FailedSortField = 'client' | 'whatsapp' | 'stage' | 'status' | 'sentAt'
+  const [failedSortBy, setFailedSortBy] = useState<FailedSortField>('sentAt')
+  const [failedSortDir, setFailedSortDir] = useState<SortDir>('desc')
+  function handleFailedSort(f: FailedSortField) {
+    const next = toggleSort({ sortBy: failedSortBy, sortDir: failedSortDir }, f)
+    setFailedSortBy(next.sortBy); setFailedSortDir(next.sortDir); setFailedPage(1)
+  }
+
+  type LogsSortField = 'client' | 'stage' | 'amount' | 'status' | 'sentAt'
+  const [logsSortBy, setLogsSortBy] = useState<LogsSortField>('sentAt')
+  const [logsSortDir, setLogsSortDir] = useState<SortDir>('desc')
+  function handleLogsSort(f: LogsSortField) {
+    const next = toggleSort({ sortBy: logsSortBy, sortDir: logsSortDir }, f)
+    setLogsSortBy(next.sortBy); setLogsSortDir(next.sortDir); setLogsPage(1)
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -253,10 +270,23 @@ export default function RelatorioDiarioPage() {
           ) : !data?.failedLogs?.length ? (
             <div className="py-12 text-center text-gray-400 text-sm">Nenhuma falha registrada neste dia.</div>
           ) : (() => {
-            const totalFailed = data.failedLogs.length
+            const fdir = failedSortDir === 'asc' ? 1 : -1
+            const failedSorted = [...data.failedLogs].sort((a, b) => {
+              let av: string = ''
+              let bv: string = ''
+              if (failedSortBy === 'client') { av = a.client?.name || ''; bv = b.client?.name || '' }
+              else if (failedSortBy === 'whatsapp') { av = a.whatsappTo || a.client?.whatsapp || ''; bv = b.whatsappTo || b.client?.whatsapp || '' }
+              else if (failedSortBy === 'stage') { av = a.stage; bv = b.stage }
+              else if (failedSortBy === 'status') { av = a.status; bv = b.status }
+              else if (failedSortBy === 'sentAt') { av = a.sentAt; bv = b.sentAt }
+              if (av < bv) return -1 * fdir
+              if (av > bv) return 1 * fdir
+              return 0
+            })
+            const totalFailed = failedSorted.length
             const failedPages = Math.max(1, Math.ceil(totalFailed / PAGE_SIZE))
             const safeFailedPage = Math.min(failedPage, failedPages)
-            const failedPaginated = data.failedLogs.slice((safeFailedPage - 1) * PAGE_SIZE, safeFailedPage * PAGE_SIZE)
+            const failedPaginated = failedSorted.slice((safeFailedPage - 1) * PAGE_SIZE, safeFailedPage * PAGE_SIZE)
             return (
             <>
             <div className="overflow-x-auto">
@@ -264,12 +294,12 @@ export default function RelatorioDiarioPage() {
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <th className="px-3 py-2 w-10"></th>
-                    <th className="px-4 py-2 text-left">Cliente</th>
-                    <th className="px-4 py-2 text-left">WhatsApp</th>
-                    <th className="px-4 py-2 text-left">Estágio</th>
-                    <th className="px-4 py-2 text-left">Status</th>
+                    <SortableTh field="client" sortBy={failedSortBy} sortDir={failedSortDir} onSort={handleFailedSort}>Cliente</SortableTh>
+                    <SortableTh field="whatsapp" sortBy={failedSortBy} sortDir={failedSortDir} onSort={handleFailedSort}>WhatsApp</SortableTh>
+                    <SortableTh field="stage" sortBy={failedSortBy} sortDir={failedSortDir} onSort={handleFailedSort}>Estágio</SortableTh>
+                    <SortableTh field="status" sortBy={failedSortBy} sortDir={failedSortDir} onSort={handleFailedSort}>Status</SortableTh>
                     <th className="px-4 py-2 text-left">Motivo</th>
-                    <th className="px-4 py-2 text-left">Hora</th>
+                    <SortableTh field="sentAt" sortBy={failedSortBy} sortDir={failedSortDir} onSort={handleFailedSort}>Hora</SortableTh>
                   </tr>
                 </thead>
                 <tbody>
@@ -348,21 +378,34 @@ export default function RelatorioDiarioPage() {
           ) : !data?.logs?.length ? (
             <div className="py-12 text-center text-gray-400 text-sm">Nenhuma mensagem registrada neste dia.</div>
           ) : (() => {
-            const totalLogs = data.logs.length
+            const ldir = logsSortDir === 'asc' ? 1 : -1
+            const logsSorted = [...data.logs].sort((a, b) => {
+              let av: string | number = ''
+              let bv: string | number = ''
+              if (logsSortBy === 'client') { av = a.client?.name || ''; bv = b.client?.name || '' }
+              else if (logsSortBy === 'stage') { av = a.stage; bv = b.stage }
+              else if (logsSortBy === 'amount') { av = a.invoice?.amount || 0; bv = b.invoice?.amount || 0 }
+              else if (logsSortBy === 'status') { av = a.status; bv = b.status }
+              else if (logsSortBy === 'sentAt') { av = a.sentAt; bv = b.sentAt }
+              if (av < bv) return -1 * ldir
+              if (av > bv) return 1 * ldir
+              return 0
+            })
+            const totalLogs = logsSorted.length
             const logsPages = Math.max(1, Math.ceil(totalLogs / PAGE_SIZE))
             const safeLogsPage = Math.min(logsPage, logsPages)
-            const logsPaginated = data.logs.slice((safeLogsPage - 1) * PAGE_SIZE, safeLogsPage * PAGE_SIZE)
+            const logsPaginated = logsSorted.slice((safeLogsPage - 1) * PAGE_SIZE, safeLogsPage * PAGE_SIZE)
             return (
             <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr className="border-b border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase">
-                    <th className="px-4 py-2 text-left">Cliente</th>
-                    <th className="px-4 py-2 text-left">Estágio</th>
-                    <th className="px-4 py-2 text-left">Valor</th>
-                    <th className="px-4 py-2 text-left">Status</th>
-                    <th className="px-4 py-2 text-left">Hora</th>
+                    <SortableTh field="client" sortBy={logsSortBy} sortDir={logsSortDir} onSort={handleLogsSort}>Cliente</SortableTh>
+                    <SortableTh field="stage" sortBy={logsSortBy} sortDir={logsSortDir} onSort={handleLogsSort}>Estágio</SortableTh>
+                    <SortableTh field="amount" sortBy={logsSortBy} sortDir={logsSortDir} onSort={handleLogsSort}>Valor</SortableTh>
+                    <SortableTh field="status" sortBy={logsSortBy} sortDir={logsSortDir} onSort={handleLogsSort}>Status</SortableTh>
+                    <SortableTh field="sentAt" sortBy={logsSortBy} sortDir={logsSortDir} onSort={handleLogsSort}>Hora</SortableTh>
                   </tr>
                 </thead>
                 <tbody>

@@ -4,7 +4,8 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle, Download, Plus, Edit2, Trash2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
+import { Search, RefreshCw, Users, Send, X, Loader2, CheckCircle, Download, Plus, Edit2, Trash2 } from 'lucide-react'
+import { SortableTh } from '@/components/ui/sortable-th'
 
 interface Client {
   id: string
@@ -694,28 +695,3 @@ function ClientField({ label, children }: { label: string; children: React.React
   )
 }
 
-type SortField = 'name' | 'whatsapp' | 'city' | 'status' | 'invoices' | 'messageLogs'
-
-function SortableTh({
-  field, sortBy, sortDir, onSort, children,
-}: {
-  field: SortField
-  sortBy: SortField
-  sortDir: 'asc' | 'desc'
-  onSort: (f: SortField) => void
-  children: React.ReactNode
-}) {
-  const active = sortBy === field
-  const Icon = active ? (sortDir === 'asc' ? ArrowUp : ArrowDown) : ArrowUpDown
-  return (
-    <th className="px-4 py-2 text-left">
-      <button
-        onClick={() => onSort(field)}
-        className={`inline-flex items-center gap-1 hover:text-gray-700 dark:hover:text-gray-200 transition-colors ${active ? 'text-purple-600 dark:text-purple-400' : ''}`}
-      >
-        {children}
-        <Icon size={11} className={active ? '' : 'opacity-40'} />
-      </button>
-    </th>
-  )
-}

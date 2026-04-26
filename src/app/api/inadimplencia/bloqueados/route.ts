@@ -90,8 +90,27 @@ export async function GET(req: NextRequest) {
       }),
     )
 
-    // Ordenacao
-    if (order === 'amount') {
+    // Ordenacao - retrocompat com 'order' (oldest|amount), mais sortBy/sortDir.
+    // Se sortBy estiver presente, ele tem prioridade sobre order.
+    const sortBy = searchParams.get('sortBy')
+    const sortDir = searchParams.get('sortDir') === 'desc' ? -1 : 1
+    if (sortBy) {
+      rows.sort((a, b) => {
+        let av: string | number = ''
+        let bv: string | number = ''
+        if (sortBy === 'name') { av = a.name; bv = b.name }
+        else if (sortBy === 'whatsapp') { av = a.whatsapp || ''; bv = b.whatsapp || '' }
+        else if (sortBy === 'planName') { av = a.planName || ''; bv = b.planName || '' }
+        else if (sortBy === 'openInvoices') { av = a.openInvoices; bv = b.openInvoices }
+        else if (sortBy === 'totalOwed') { av = a.totalOwed; bv = b.totalOwed }
+        else if (sortBy === 'oldestDueDate') { av = a.oldestDueDate?.getTime() || 0; bv = b.oldestDueDate?.getTime() || 0 }
+        else if (sortBy === 'daysOverdue') { av = a.daysOverdue; bv = b.daysOverdue }
+        else if (sortBy === 'lastSent') { av = a.lastSent?.sentAt?.getTime() || 0; bv = b.lastSent?.sentAt?.getTime() || 0 }
+        if (av < bv) return -1 * sortDir
+        if (av > bv) return 1 * sortDir
+        return 0
+      })
+    } else if (order === 'amount') {
       rows.sort((a, b) => b.totalOwed - a.totalOwed)
     } else {
       rows.sort((a, b) => b.daysOverdue - a.daysOverdue)

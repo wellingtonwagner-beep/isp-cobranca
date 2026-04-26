@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { MessageSquare, CheckCircle, XCircle, Clock, RefreshCw, Download, Filter } from 'lucide-react'
 import { formatDateBR, formatCurrency } from '@/lib/utils'
+import { SortableTh, toggleSort, type SortDir } from '@/components/ui/sortable-th'
 
 interface CobrancaLog {
   id: string
@@ -49,6 +50,13 @@ export default function CobrancasPage() {
   const [filterStatus, setFilterStatus] = useState('')
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 10
+  type SortField = 'client' | 'stage' | 'amount' | 'dueDate' | 'status' | 'sentAt'
+  const [sortBy, setSortBy] = useState<SortField>('sentAt')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  function handleSort(f: SortField) {
+    const next = toggleSort({ sortBy, sortDir }, f)
+    setSortBy(next.sortBy); setSortDir(next.sortDir); setPage(1)
+  }
 
   async function load() {
     setLoading(true)
@@ -234,10 +242,24 @@ export default function CobrancasPage() {
               if (filterStatus && log.status !== filterStatus) return false
               return true
             })
-            const total = filtered.length
+            const dir = sortDir === 'asc' ? 1 : -1
+            const sorted = [...filtered].sort((a, b) => {
+              let av: string | number = ''
+              let bv: string | number = ''
+              if (sortBy === 'client') { av = a.client?.name || ''; bv = b.client?.name || '' }
+              else if (sortBy === 'stage') { av = a.stage; bv = b.stage }
+              else if (sortBy === 'amount') { av = a.invoice?.amount || 0; bv = b.invoice?.amount || 0 }
+              else if (sortBy === 'dueDate') { av = a.invoice?.dueDate || ''; bv = b.invoice?.dueDate || '' }
+              else if (sortBy === 'status') { av = a.status; bv = b.status }
+              else if (sortBy === 'sentAt') { av = a.sentAt; bv = b.sentAt }
+              if (av < bv) return -1 * dir
+              if (av > bv) return 1 * dir
+              return 0
+            })
+            const total = sorted.length
             const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
             const safePage = Math.min(page, pages)
-            const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+            const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
             return total === 0 ? (
               <div className="py-12 text-center text-gray-400 text-sm">
                 Nenhum envio encontrado com os filtros selecionados.
@@ -248,12 +270,12 @@ export default function CobrancasPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
-                    <th className="px-4 py-2 text-left">Cliente</th>
-                    <th className="px-4 py-2 text-left">Estágio</th>
-                    <th className="px-4 py-2 text-left">Valor</th>
-                    <th className="px-4 py-2 text-left">Vencimento</th>
-                    <th className="px-4 py-2 text-left">Status</th>
-                    <th className="px-4 py-2 text-left">Enviado em</th>
+                    <SortableTh field="client" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Cliente</SortableTh>
+                    <SortableTh field="stage" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Estágio</SortableTh>
+                    <SortableTh field="amount" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Valor</SortableTh>
+                    <SortableTh field="dueDate" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Vencimento</SortableTh>
+                    <SortableTh field="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Status</SortableTh>
+                    <SortableTh field="sentAt" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Enviado em</SortableTh>
                   </tr>
                 </thead>
                 <tbody>

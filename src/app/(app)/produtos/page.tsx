@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Package, Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react'
+import { SortableTh, toggleSort, type SortDir } from '@/components/ui/sortable-th'
 
 interface Product {
   id: string
@@ -55,6 +56,13 @@ export default function ProdutosPage() {
   const [erpBlock, setErpBlock] = useState(false)
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 10
+  type SortField = 'name' | 'recurrence' | 'amount' | 'invoices' | 'subscriptions' | 'active'
+  const [sortBy, setSortBy] = useState<SortField>('name')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  function handleSort(f: SortField) {
+    const next = toggleSort({ sortBy, sortDir }, f)
+    setSortBy(next.sortBy); setSortDir(next.sortDir); setPage(1)
+  }
 
   const [editing, setEditing] = useState<Product | null>(null)
   const [creating, setCreating] = useState(false)
@@ -203,22 +211,36 @@ export default function ProdutosPage() {
               <p className="text-gray-400 text-sm">Nenhum produto cadastrado.</p>
             </div>
           ) : (() => {
-            const total = products.length
+            const dir = sortDir === 'asc' ? 1 : -1
+            const sorted = [...products].sort((a, b) => {
+              let av: string | number | boolean = ''
+              let bv: string | number | boolean = ''
+              if (sortBy === 'name') { av = a.name; bv = b.name }
+              else if (sortBy === 'recurrence') { av = a.recurrence; bv = b.recurrence }
+              else if (sortBy === 'amount') { av = a.amount; bv = b.amount }
+              else if (sortBy === 'invoices') { av = a._count.invoices; bv = b._count.invoices }
+              else if (sortBy === 'subscriptions') { av = a._count.subscriptions; bv = b._count.subscriptions }
+              else if (sortBy === 'active') { av = a.active ? 1 : 0; bv = b.active ? 1 : 0 }
+              if (av < bv) return -1 * dir
+              if (av > bv) return 1 * dir
+              return 0
+            })
+            const total = sorted.length
             const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
             const safePage = Math.min(page, pages)
-            const paginated = products.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+            const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
             return (
             <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
-                    <th className="px-4 py-2 text-left">Nome</th>
-                    <th className="px-4 py-2 text-left">Recorrência</th>
-                    <th className="px-4 py-2 text-right">Valor</th>
-                    <th className="px-4 py-2 text-center">Faturas</th>
-                    <th className="px-4 py-2 text-center">Assinaturas</th>
-                    <th className="px-4 py-2 text-center">Status</th>
+                    <SortableTh field="name" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Nome</SortableTh>
+                    <SortableTh field="recurrence" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Recorrência</SortableTh>
+                    <SortableTh field="amount" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="right">Valor</SortableTh>
+                    <SortableTh field="invoices" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Faturas</SortableTh>
+                    <SortableTh field="subscriptions" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Assinaturas</SortableTh>
+                    <SortableTh field="active" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Status</SortableTh>
                     <th className="px-4 py-2 text-right">Ações</th>
                   </tr>
                 </thead>

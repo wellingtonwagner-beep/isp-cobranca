@@ -48,12 +48,22 @@ export async function GET(req: NextRequest) {
       where.dueDate = dueDate
     }
 
+    const sortBy = searchParams.get('sortBy') || 'dueDate'
+    const sortDir = searchParams.get('sortDir') === 'desc' ? 'desc' : searchParams.get('sortDir') === 'asc' ? 'asc' : 'desc'
+    let orderBy: Record<string, unknown> | Record<string, unknown>[] = [{ dueDate: 'desc' }, { createdAt: 'desc' }]
+    if (sortBy === 'dueDate') orderBy = [{ dueDate: sortDir }, { createdAt: 'desc' }]
+    else if (sortBy === 'amount') orderBy = { amount: sortDir }
+    else if (sortBy === 'status') orderBy = { status: sortDir }
+    else if (sortBy === 'client') orderBy = { client: { name: sortDir } }
+    else if (sortBy === 'product') orderBy = { product: { name: sortDir } }
+    else if (sortBy === 'sequentialNumber') orderBy = { sequentialNumber: sortDir }
+
     const [invoices, total] = await Promise.all([
       prisma.invoice.findMany({
         where,
         skip: (page - 1) * limit,
         take: limit,
-        orderBy: [{ dueDate: 'desc' }, { createdAt: 'desc' }],
+        orderBy,
         include: {
           client: { select: { id: true, name: true, whatsapp: true, cpfCnpj: true } },
           product: { select: { id: true, name: true, recurrence: true } },

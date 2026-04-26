@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { AlertTriangle, RefreshCw, Download, Search, Filter, AlertOctagon } from 'lucide-react'
 import Link from 'next/link'
 import { formatDateBR, formatCurrency } from '@/lib/utils'
+import { SortableTh, toggleSort, type SortDir } from '@/components/ui/sortable-th'
 
 interface InadimplenciaInvoice {
   id: string
@@ -35,11 +36,18 @@ export default function InadimplenciaPage() {
   const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [daysRange, setDaysRange] = useState('')
+  type SortField = 'client' | 'dueDate' | 'amount' | 'daysOverdue'
+  const [sortBy, setSortBy] = useState<SortField>('dueDate')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  function handleSort(f: SortField) {
+    const next = toggleSort({ sortBy, sortDir }, f)
+    setSortBy(next.sortBy); setSortDir(next.sortDir); setPage(1)
+  }
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ page: String(page) })
+      const params = new URLSearchParams({ page: String(page), sortBy, sortDir })
       if (q) params.set('q', q)
       if (daysRange === '1-5') { params.set('minDays', '1'); params.set('maxDays', '5') }
       else if (daysRange === '6-10') { params.set('minDays', '6'); params.set('maxDays', '10') }
@@ -53,7 +61,7 @@ export default function InadimplenciaPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, q, daysRange])
+  }, [page, q, daysRange, sortBy, sortDir])
 
   useEffect(() => { load() }, [load])
 
@@ -123,10 +131,10 @@ export default function InadimplenciaPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
-                      <th className="px-4 py-2 text-left">Cliente</th>
-                      <th className="px-4 py-2 text-left">Vencimento</th>
-                      <th className="px-4 py-2 text-left">Valor</th>
-                      <th className="px-4 py-2 text-left">Dias Atraso</th>
+                      <SortableTh field="client" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Cliente</SortableTh>
+                      <SortableTh field="dueDate" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Vencimento</SortableTh>
+                      <SortableTh field="amount" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Valor</SortableTh>
+                      <SortableTh field="daysOverdue" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Dias Atraso</SortableTh>
                       <th className="px-4 py-2 text-left">Último Contato</th>
                       <th className="px-4 py-2 text-left">WhatsApp</th>
                     </tr>

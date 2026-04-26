@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { FileText, Plus, CheckCircle, X, Loader2, Search, Trash2, Undo2 } from 'lucide-react'
+import { SortableTh, toggleSort, type SortDir } from '@/components/ui/sortable-th'
 
 interface Invoice {
   id: string
@@ -55,6 +56,13 @@ export default function ContasAReceberPage() {
   // Filtros
   const [filterStatus, setFilterStatus] = useState('')
   const [filterQ, setFilterQ] = useState('')
+  type SortField = 'sequentialNumber' | 'client' | 'product' | 'dueDate' | 'amount' | 'status'
+  const [sortBy, setSortBy] = useState<SortField>('dueDate')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
+  function handleSort(f: SortField) {
+    const next = toggleSort({ sortBy, sortDir }, f)
+    setSortBy(next.sortBy); setSortDir(next.sortDir); setPage(1)
+  }
 
   // Nova fatura
   const [creating, setCreating] = useState(false)
@@ -73,7 +81,7 @@ export default function ContasAReceberPage() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const params = new URLSearchParams({ page: String(page) })
+      const params = new URLSearchParams({ page: String(page), sortBy, sortDir })
       if (filterStatus) params.set('status', filterStatus)
       if (filterQ) params.set('q', filterQ)
       const res = await fetch(`/api/invoices/manual?${params}`)
@@ -86,7 +94,7 @@ export default function ContasAReceberPage() {
     } finally {
       setLoading(false)
     }
-  }, [page, filterStatus, filterQ])
+  }, [page, filterStatus, filterQ, sortBy, sortDir])
 
   useEffect(() => {
     fetch('/api/auth/me').then((r) => r.json()).then((d) => {
@@ -252,12 +260,12 @@ export default function ContasAReceberPage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
-                    <th className="px-4 py-2 text-left">#</th>
-                    <th className="px-4 py-2 text-left">Cliente</th>
-                    <th className="px-4 py-2 text-left">Produto</th>
-                    <th className="px-4 py-2 text-left">Vencimento</th>
-                    <th className="px-4 py-2 text-right">Valor</th>
-                    <th className="px-4 py-2 text-center">Status</th>
+                    <SortableTh field="sequentialNumber" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>#</SortableTh>
+                    <SortableTh field="client" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Cliente</SortableTh>
+                    <SortableTh field="product" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Produto</SortableTh>
+                    <SortableTh field="dueDate" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Vencimento</SortableTh>
+                    <SortableTh field="amount" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="right">Valor</SortableTh>
+                    <SortableTh field="status" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Status</SortableTh>
                     <th className="px-4 py-2 text-right">Ações</th>
                   </tr>
                 </thead>

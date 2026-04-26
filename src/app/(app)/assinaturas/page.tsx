@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Repeat, Plus, Edit2, Power, X, Loader2 } from 'lucide-react'
+import { SortableTh, toggleSort, type SortDir } from '@/components/ui/sortable-th'
 
 interface Subscription {
   id: string
@@ -63,6 +64,13 @@ export default function AssinaturasPage() {
   const [erpBlock, setErpBlock] = useState(false)
   const [page, setPage] = useState(1)
   const PAGE_SIZE = 10
+  type SortField = 'client' | 'product' | 'dayOfMonth' | 'amount' | 'startDate' | 'lastGeneratedAt' | 'invoices' | 'active'
+  const [sortBy, setSortBy] = useState<SortField>('client')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  function handleSort(f: SortField) {
+    const next = toggleSort({ sortBy, sortDir }, f)
+    setSortBy(next.sortBy); setSortDir(next.sortDir); setPage(1)
+  }
 
   const [clients, setClients] = useState<ClientOption[]>([])
   const [products, setProducts] = useState<ProductOption[]>([])
@@ -216,24 +224,40 @@ export default function AssinaturasPage() {
               <p className="text-gray-400 text-sm">Nenhuma assinatura cadastrada.</p>
             </div>
           ) : (() => {
-            const total = subs.length
+            const dir = sortDir === 'asc' ? 1 : -1
+            const sorted = [...subs].sort((a, b) => {
+              let av: string | number = ''
+              let bv: string | number = ''
+              if (sortBy === 'client') { av = a.client.name; bv = b.client.name }
+              else if (sortBy === 'product') { av = a.product.name; bv = b.product.name }
+              else if (sortBy === 'dayOfMonth') { av = a.dayOfMonth; bv = b.dayOfMonth }
+              else if (sortBy === 'amount') { av = a.product.amount; bv = b.product.amount }
+              else if (sortBy === 'startDate') { av = a.startDate; bv = b.startDate }
+              else if (sortBy === 'lastGeneratedAt') { av = a.lastGeneratedAt || ''; bv = b.lastGeneratedAt || '' }
+              else if (sortBy === 'invoices') { av = a._count.invoices; bv = b._count.invoices }
+              else if (sortBy === 'active') { av = a.active ? 1 : 0; bv = b.active ? 1 : 0 }
+              if (av < bv) return -1 * dir
+              if (av > bv) return 1 * dir
+              return 0
+            })
+            const total = sorted.length
             const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
             const safePage = Math.min(page, pages)
-            const paginated = subs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+            const paginated = sorted.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
             return (
             <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-500 dark:text-gray-400 uppercase">
-                    <th className="px-4 py-2 text-left">Cliente</th>
-                    <th className="px-4 py-2 text-left">Produto</th>
-                    <th className="px-4 py-2 text-center">Dia</th>
-                    <th className="px-4 py-2 text-right">Valor</th>
-                    <th className="px-4 py-2 text-left">Vigência</th>
-                    <th className="px-4 py-2 text-center">Último ciclo</th>
-                    <th className="px-4 py-2 text-center">Faturas</th>
-                    <th className="px-4 py-2 text-center">Status</th>
+                    <SortableTh field="client" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Cliente</SortableTh>
+                    <SortableTh field="product" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Produto</SortableTh>
+                    <SortableTh field="dayOfMonth" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Dia</SortableTh>
+                    <SortableTh field="amount" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="right">Valor</SortableTh>
+                    <SortableTh field="startDate" sortBy={sortBy} sortDir={sortDir} onSort={handleSort}>Vigência</SortableTh>
+                    <SortableTh field="lastGeneratedAt" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Último ciclo</SortableTh>
+                    <SortableTh field="invoices" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Faturas</SortableTh>
+                    <SortableTh field="active" sortBy={sortBy} sortDir={sortDir} onSort={handleSort} align="center">Status</SortableTh>
                     <th className="px-4 py-2 text-right">Ações</th>
                   </tr>
                 </thead>
