@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCompanyId } from '@/lib/session'
 import { randomBytes } from 'crypto'
+import { createPspClient } from '@/lib/psp'
 
 async function requireManualMode(companyId: string): Promise<string | null> {
   const settings = await prisma.companySettings.findUnique({
@@ -123,6 +124,8 @@ export async function POST(req: NextRequest) {
     })
     const nextSeq = (last?.sequentialNumber || 0) + 1
 
+    const txid = generateTxid()
+
     const invoice = await prisma.invoice.create({
       data: {
         companyId,
@@ -134,15 +137,56 @@ export async function POST(req: NextRequest) {
         planName,
         description: description?.trim() || null,
         sequentialNumber: nextSeq,
-        pixTxid: generateTxid(),
+        pixTxid: txid,
       },
       include: {
-        client: { select: { id: true, name: true } },
+        client: { select: { id: true, name: true, cpfCnpj: true } },
         product: { select: { id: true, name: true } },
       },
     })
 
-    return NextResponse.json({ ok: true, invoice })
+    // Tenta criar a cobranca no PSP se ele estiver configurado.
+    // Falha do PSP nao bloqueia a criacao da invoice — usuario ve o warning
+    // e pode tentar de novo manualmente depois.
+    let pspWarning: string | null = null
+    const settings = await prisma.companySettings.findUnique({
+      where: { companyId },
+      select: {
+        pixPsp: true, pixPspApiKey: true, pixPspClientId: true, pixPspClientSecret: true,
+        pixPspWebhookSecret: true, pixPspBaseUrl: true, pixPspEnv: true,
+        pixPspCertBase64: true, pixPspCertPassword: true,
+        pixKeyValue: true, pixBeneficiaryName: true, pixBeneficiaryCity: true,
+      },
+    })
+    const pspClient = settings ? createPspClient(settings) : null
+    if (pspClient && settings?.pixKeyValue && settings?.pixBeneficiaryName && settings?.pixBeneficiaryCity) {
+      try {
+        const charge = await pspClient.createCharge({
+          txid,
+          amount: amountNum,
+          description: description?.trim() || `Fatura #${nextSeq}`,
+          payerCpfCnpj: invoice.client.cpfCnpj || undefined,
+          payerName: invoice.client.name,
+          pixKey: settings.pixKeyValue,
+          beneficiaryName: settings.pixBeneficiaryName,
+          beneficiaryCity: settings.pixBeneficiaryCity,
+        })
+        await prisma.invoice.update({
+          where: { id: invoice.id },
+          data: { pixCode: charge.pixCopiaCola },
+        })
+      } catch (err) {
+        const e = err as { message?: string }
+        pspWarning = `Invoice criada mas o PSP nao gerou o PIX: ${e.message || err}`
+        console.warn(`[POST /api/invoices/manual][${companyId}]`, pspWarning)
+      }
+    } else if (settings?.pixPsp && !pspClient) {
+      pspWarning = `PSP "${settings.pixPsp}" sem integracao implementada — invoice criada sem PIX dinamico.`
+    } else if (pspClient && (!settings?.pixKeyValue || !settings?.pixBeneficiaryName || !settings?.pixBeneficiaryCity)) {
+      pspWarning = 'Preencha chave PIX, nome e cidade do recebedor em Configuracoes > PIX para gerar QR.'
+    }
+
+    return NextResponse.json({ ok: true, invoice, pspWarning })
   } catch (err) {
     console.error('[POST /api/invoices/manual]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

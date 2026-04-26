@@ -42,6 +42,7 @@ export async function PUT(req: NextRequest) {
       testMode, sendWindowStart, sendWindowEnd, sendDays,
       // PIX (banco proprio)
       pixPsp, pixPspApiKey, pixPspClientId, pixPspClientSecret, pixPspWebhookSecret,
+      pixPspBaseUrl, pixPspEnv, pixPspCertBase64, pixPspCertPassword,
       pixKeyType, pixKeyValue, pixBeneficiaryName, pixBeneficiaryCity,
     } = body
 
@@ -83,6 +84,10 @@ export async function PUT(req: NextRequest) {
         ...(pixPspClientId !== undefined && { pixPspClientId }),
         ...(pixPspClientSecret !== undefined && { pixPspClientSecret }),
         ...(pixPspWebhookSecret !== undefined && { pixPspWebhookSecret }),
+        ...(pixPspBaseUrl !== undefined && { pixPspBaseUrl }),
+        ...(pixPspEnv !== undefined && { pixPspEnv }),
+        ...(pixPspCertBase64 !== undefined && { pixPspCertBase64 }),
+        ...(pixPspCertPassword !== undefined && { pixPspCertPassword }),
         ...(pixKeyType !== undefined && { pixKeyType }),
         ...(pixKeyValue !== undefined && { pixKeyValue }),
         ...(pixBeneficiaryName !== undefined && { pixBeneficiaryName }),
@@ -100,6 +105,7 @@ export async function PUT(req: NextRequest) {
         sendWindowEnd: sendWindowEnd || '20:00',
         sendDays: sendDays || '1,2,3,4,5,6',
         pixPsp, pixPspApiKey, pixPspClientId, pixPspClientSecret, pixPspWebhookSecret,
+        pixPspBaseUrl, pixPspEnv, pixPspCertBase64, pixPspCertPassword,
         pixKeyType, pixKeyValue, pixBeneficiaryName, pixBeneficiaryCity,
       },
     })

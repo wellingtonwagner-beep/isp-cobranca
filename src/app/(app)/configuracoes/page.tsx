@@ -10,6 +10,7 @@ type Tab = 'empresa' | 'erp' | 'whatsapp' | 'cobrancas' | 'pix'
 
 const PSP_OPTIONS = [
   { id: '', label: '— Selecione —' },
+  { id: 'c6', label: 'C6 Bank' },
   { id: 'sicoob', label: 'Sicoob' },
   { id: 'asaas', label: 'Asaas' },
   { id: 'mercadopago', label: 'Mercado Pago' },
@@ -21,6 +22,10 @@ const PSP_OPTIONS = [
   { id: 'inter', label: 'Inter' },
   { id: 'outro', label: 'Outro' },
 ]
+
+// Adapters atualmente implementados (com createCharge real). Outros sao
+// apenas placeholders no select ate ter implementacao.
+const PSP_IMPLEMENTED = new Set(['c6'])
 
 interface Settings {
   company: { name: string; cnpj: string; email: string; logo?: string }
@@ -48,6 +53,10 @@ interface Settings {
     pixPspClientId?: string
     pixPspClientSecret?: string
     pixPspWebhookSecret?: string
+    pixPspBaseUrl?: string
+    pixPspEnv?: string
+    pixPspCertBase64?: string
+    pixPspCertPassword?: string
     pixKeyType?: string
     pixKeyValue?: string
     pixBeneficiaryName?: string
@@ -81,6 +90,9 @@ export default function ConfiguracoesPage() {
   const [testPhone, setTestPhone] = useState('')
   const [sendingTest, setSendingTest] = useState(false)
   const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null)
+  const [testingPsp, setTestingPsp] = useState(false)
+  const [pspStatus, setPspStatus] = useState<{ ok: boolean; message: string } | null>(null)
+  const [certFileName, setCertFileName] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/configuracoes')
@@ -113,6 +125,10 @@ export default function ConfiguracoesPage() {
           pixPspClientId: d.settings?.pixPspClientId || '',
           pixPspClientSecret: d.settings?.pixPspClientSecret || '',
           pixPspWebhookSecret: d.settings?.pixPspWebhookSecret || '',
+          pixPspBaseUrl: d.settings?.pixPspBaseUrl || '',
+          pixPspEnv: d.settings?.pixPspEnv || 'sandbox',
+          pixPspCertBase64: d.settings?.pixPspCertBase64 || '',
+          pixPspCertPassword: d.settings?.pixPspCertPassword || '',
           pixKeyType: d.settings?.pixKeyType || '',
           pixKeyValue: d.settings?.pixKeyValue || '',
           pixBeneficiaryName: d.settings?.pixBeneficiaryName || '',
@@ -196,6 +212,46 @@ export default function ConfiguracoesPage() {
       setQrError('Erro ao conectar com a Evolution API.')
     }
     setLoadingQr(false)
+  }
+
+  function handleCertUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    setCertFileName(file.name)
+    const reader = new FileReader()
+    reader.onload = () => {
+      // result e' "data:application/x-pkcs12;base64,XXXX" — pegamos apenas o base64
+      const result = reader.result as string
+      const base64 = result.includes(',') ? result.split(',')[1] : result
+      setForm((f) => ({ ...f, pixPspCertBase64: base64 }))
+    }
+    reader.readAsDataURL(file)
+  }
+
+  async function testPspConnection() {
+    setTestingPsp(true)
+    setPspStatus(null)
+    // Garante que credenciais salvas antes de testar
+    await fetch('/api/configuracoes', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    })
+    try {
+      const res = await fetch('/api/admin/test-psp', { method: 'POST' })
+      const d = await res.json()
+      setPspStatus({ ok: d.ok || false, message: d.message || d.error || 'Erro desconhecido' })
+    } catch (err) {
+      setPspStatus({ ok: false, message: String(err) })
+    }
+    setTestingPsp(false)
+  }
+
+  function generateWebhookSecret() {
+    const bytes = new Uint8Array(24)
+    crypto.getRandomValues(bytes)
+    const secret = Array.from(bytes).map((b) => b.toString(16).padStart(2, '0')).join('')
+    setForm((f) => ({ ...f, pixPspWebhookSecret: secret }))
   }
 
   async function sendTestMessage() {
@@ -501,15 +557,100 @@ export default function ConfiguracoesPage() {
                     <option key={p.id} value={p.id}>{p.label}</option>
                   ))}
                 </select>
-                <p className="text-xs text-gray-400 mt-1">A integração real com o PSP será habilitada em breve. Por enquanto, salve as credenciais.</p>
+                <p className="text-xs text-gray-400 mt-1">Apenas C6 Bank tem integração real implementada nesta versão. Outros PSPs aparecerão em breve.</p>
               </div>
 
               {form.pixPsp && form.pixPsp !== '' && (
                 <>
-                  <Field label="API Key / Token" name="pixPspApiKey" value={form.pixPspApiKey as string} onChange={handleChange} placeholder="Chave principal de acesso à API do PSP" />
-                  <Field label="Client ID" name="pixPspClientId" value={form.pixPspClientId as string} onChange={handleChange} placeholder="ID do cliente OAuth (se aplicável)" />
-                  <Field label="Client Secret" name="pixPspClientSecret" value={form.pixPspClientSecret as string} onChange={handleChange} placeholder="Secret do cliente OAuth (se aplicável)" type="password" />
-                  <Field label="Webhook Secret" name="pixPspWebhookSecret" value={form.pixPspWebhookSecret as string} onChange={handleChange} placeholder="Secret usado para validar os webhooks de pagamento" type="password" />
+                  {!PSP_IMPLEMENTED.has(form.pixPsp as string) && (
+                    <div className="px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-xs text-amber-700 dark:text-amber-300">
+                      Integração ainda não implementada para esse PSP. Você pode salvar as credenciais, mas a emissão de cobrança e o webhook ainda não funcionarão.
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Ambiente</label>
+                      <select
+                        name="pixPspEnv"
+                        value={(form.pixPspEnv as string) || 'sandbox'}
+                        onChange={handleChange}
+                        className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                      >
+                        <option value="sandbox">Sandbox / Homologação</option>
+                        <option value="production">Produção</option>
+                      </select>
+                    </div>
+                    <Field label="URL base (opcional)" name="pixPspBaseUrl" value={form.pixPspBaseUrl as string} onChange={handleChange} placeholder="Sobrescreve URL padrão do PSP" />
+                  </div>
+
+                  <Field label="Client ID" name="pixPspClientId" value={form.pixPspClientId as string} onChange={handleChange} placeholder="Identificador OAuth gerado no portal do PSP" />
+                  <Field label="Client Secret" name="pixPspClientSecret" value={form.pixPspClientSecret as string} onChange={handleChange} placeholder="Secret OAuth (mantido em sigilo)" type="password" />
+                  <Field label="API Key (opcional)" name="pixPspApiKey" value={form.pixPspApiKey as string} onChange={handleChange} placeholder="Alguns PSPs usam API key adicional" />
+
+                  {/* Certificado mTLS */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/30">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Certificado mTLS (.pfx)
+                      <span className="text-xs text-gray-400 font-normal ml-1">— obrigatório para C6, Sicoob, BB</span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="file"
+                        accept=".pfx,.p12"
+                        onChange={handleCertUpload}
+                        className="flex-1 text-xs text-gray-600 dark:text-gray-400 file:mr-3 file:py-1.5 file:px-3 file:rounded file:border-0 file:text-xs file:bg-purple-100 file:text-purple-700 hover:file:bg-purple-200"
+                      />
+                      {(certFileName || form.pixPspCertBase64) && (
+                        <span className="text-xs text-green-600 dark:text-green-400 flex items-center gap-1">
+                          <CheckCircle size={12} /> {certFileName || 'cert salvo'}
+                        </span>
+                      )}
+                    </div>
+                    <Field label="Senha do certificado" name="pixPspCertPassword" value={form.pixPspCertPassword as string} onChange={handleChange} placeholder="Senha definida ao gerar o .pfx" type="password" />
+                  </div>
+
+                  {/* Webhook */}
+                  <div className="border border-gray-200 dark:border-gray-600 rounded-lg p-3 bg-gray-50 dark:bg-gray-700/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Webhook Secret</label>
+                      <button
+                        type="button"
+                        onClick={generateWebhookSecret}
+                        className="text-xs text-purple-600 dark:text-purple-400 hover:underline"
+                      >
+                        Gerar novo
+                      </button>
+                    </div>
+                    <Field label="" name="pixPspWebhookSecret" value={form.pixPspWebhookSecret as string} onChange={handleChange} placeholder="Clique em 'Gerar novo' para criar" type="password" />
+                    {form.pixPspWebhookSecret && (
+                      <div className="mt-2 p-2 rounded bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                        <div className="text-xs text-gray-500 mb-1">Cadastre essa URL no portal do {PSP_OPTIONS.find(p => p.id === form.pixPsp)?.label}:</div>
+                        <code className="text-xs break-all text-purple-700 dark:text-purple-300">
+                          {typeof window !== 'undefined' ? window.location.origin : ''}/api/webhooks/pix/{form.pixPsp}/{form.pixPspWebhookSecret}
+                        </code>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botão testar conexão */}
+                  {PSP_IMPLEMENTED.has(form.pixPsp as string) && (
+                    <div>
+                      <Button onClick={testPspConnection} loading={testingPsp} variant="secondary" size="sm">
+                        Testar conexão
+                      </Button>
+                      {pspStatus && (
+                        <div className={`mt-2 px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${
+                          pspStatus.ok
+                            ? 'bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-300'
+                            : 'bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                        }`}>
+                          {pspStatus.ok ? <CheckCircle size={16} /> : <span>&#10060;</span>}
+                          {pspStatus.message}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-5 mt-5">
                     <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">Dados do recebedor (impressos no QR Code)</h3>

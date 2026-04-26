@@ -57,11 +57,15 @@ model CompanySettings {
   evolutionInstance String?
 
   // PIX dinâmico via PSP (banco próprio) - usado quando erpType=manual
-  pixPsp              String?  // sicoob | asaas | mercadopago | gerencianet | sicredi | bb | bradesco | itau | inter | outro
+  pixPsp              String?  // c6 | sicoob | asaas | mercadopago | gerencianet | sicredi | bb | bradesco | itau | inter | outro
   pixPspApiKey        String?
   pixPspClientId      String?
   pixPspClientSecret  String?
   pixPspWebhookSecret String?
+  pixPspBaseUrl       String?  // URL base da API do PSP (sandbox ou producao)
+  pixPspEnv           String?  // sandbox | production
+  pixPspCertBase64    String?  // certificado .pfx em base64 (mTLS - C6/Sicoob/etc)
+  pixPspCertPassword  String?  // senha do certificado .pfx
   pixKeyType          String?  // cpf | cnpj | email | phone | aleatoria
   pixKeyValue         String?  // valor da chave PIX da empresa
   pixBeneficiaryName  String?  // nome do recebedor no QR Code

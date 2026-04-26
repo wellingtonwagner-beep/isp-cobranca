@@ -17,6 +17,8 @@ const PUBLIC_PATHS = [
   // nao serem redirecionadas para /login.
   '/api/cron', '/api/sync/faturas', '/api/sync/clientes',
   '/api/subscriptions/generate',
+  // Webhooks publicos de PSPs (PIX). Auth feita por secret no path.
+  '/api/webhooks',
 ]
 
 // Rotas que exigem ADMIN (super-admin do sistema)
