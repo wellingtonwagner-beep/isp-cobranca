@@ -53,6 +53,8 @@ export default function ProdutosPage() {
   const [loading, setLoading] = useState(true)
   const [includeInactive, setIncludeInactive] = useState(true)
   const [erpBlock, setErpBlock] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 10
 
   const [editing, setEditing] = useState<Product | null>(null)
   const [creating, setCreating] = useState(false)
@@ -200,7 +202,13 @@ export default function ProdutosPage() {
               <Package className="w-8 h-8 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
               <p className="text-gray-400 text-sm">Nenhum produto cadastrado.</p>
             </div>
-          ) : (
+          ) : (() => {
+            const total = products.length
+            const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+            const safePage = Math.min(page, pages)
+            const paginated = products.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+            return (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -215,7 +223,7 @@ export default function ProdutosPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {products.map((p) => (
+                  {paginated.map((p) => (
                     <tr key={p.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
                       <td className="px-4 py-2.5">
                         <div className="font-medium text-gray-800 dark:text-gray-200">{p.name}</div>
@@ -255,7 +263,18 @@ export default function ProdutosPage() {
                 </tbody>
               </table>
             </div>
-          )}
+            {pages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                <span className="text-xs text-gray-400">Página {safePage} de {pages} · {total} item(ns)</span>
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
+                  <Button variant="secondary" size="sm" disabled={safePage >= pages} onClick={() => setPage(safePage + 1)}>Próxima</Button>
+                </div>
+              </div>
+            )}
+            </>
+            )
+          })()}
         </CardContent>
       </Card>
 

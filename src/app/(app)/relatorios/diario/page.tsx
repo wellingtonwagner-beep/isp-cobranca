@@ -76,6 +76,9 @@ export default function RelatorioDiarioPage() {
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [resending, setResending] = useState(false)
   const [resendMsg, setResendMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [failedPage, setFailedPage] = useState(1)
+  const [logsPage, setLogsPage] = useState(1)
+  const PAGE_SIZE = 10
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -155,7 +158,7 @@ export default function RelatorioDiarioPage() {
             <input
               type="date"
               value={date}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => { setDate(e.target.value); setFailedPage(1); setLogsPage(1) }}
               max={todayStr()}
               className="px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-md text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
             />
@@ -249,7 +252,13 @@ export default function RelatorioDiarioPage() {
             <div className="py-12 text-center text-gray-400 text-sm">Carregando...</div>
           ) : !data?.failedLogs?.length ? (
             <div className="py-12 text-center text-gray-400 text-sm">Nenhuma falha registrada neste dia.</div>
-          ) : (
+          ) : (() => {
+            const totalFailed = data.failedLogs.length
+            const failedPages = Math.max(1, Math.ceil(totalFailed / PAGE_SIZE))
+            const safeFailedPage = Math.min(failedPage, failedPages)
+            const failedPaginated = data.failedLogs.slice((safeFailedPage - 1) * PAGE_SIZE, safeFailedPage * PAGE_SIZE)
+            return (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -264,7 +273,7 @@ export default function RelatorioDiarioPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.failedLogs.map((log) => {
+                  {failedPaginated.map((log) => {
                     const sc = statusConfig[log.status] || { label: log.status, variant: 'muted' as const }
                     const canRetry = canRetryLog(log)
                     const phoneNowAvailable = log.status === 'skipped_no_phone' && log.client?.whatsapp
@@ -312,7 +321,18 @@ export default function RelatorioDiarioPage() {
                 </tbody>
               </table>
             </div>
-          )}
+            {failedPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                <span className="text-xs text-gray-400">Página {safeFailedPage} de {failedPages} · {totalFailed} falha(s)</span>
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" disabled={safeFailedPage <= 1} onClick={() => setFailedPage(safeFailedPage - 1)}>Anterior</Button>
+                  <Button variant="secondary" size="sm" disabled={safeFailedPage >= failedPages} onClick={() => setFailedPage(safeFailedPage + 1)}>Próxima</Button>
+                </div>
+              </div>
+            )}
+            </>
+            )
+          })()}
         </CardContent>
       </Card>
 
@@ -327,10 +347,16 @@ export default function RelatorioDiarioPage() {
             <div className="py-12 text-center text-gray-400 text-sm">Carregando...</div>
           ) : !data?.logs?.length ? (
             <div className="py-12 text-center text-gray-400 text-sm">Nenhuma mensagem registrada neste dia.</div>
-          ) : (
-            <div className="overflow-x-auto max-h-[600px] overflow-y-auto">
+          ) : (() => {
+            const totalLogs = data.logs.length
+            const logsPages = Math.max(1, Math.ceil(totalLogs / PAGE_SIZE))
+            const safeLogsPage = Math.min(logsPage, logsPages)
+            const logsPaginated = data.logs.slice((safeLogsPage - 1) * PAGE_SIZE, safeLogsPage * PAGE_SIZE)
+            return (
+            <>
+            <div className="overflow-x-auto">
               <table className="w-full text-sm">
-                <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10">
+                <thead className="bg-gray-50 dark:bg-gray-800">
                   <tr className="border-b border-gray-100 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400 uppercase">
                     <th className="px-4 py-2 text-left">Cliente</th>
                     <th className="px-4 py-2 text-left">Estágio</th>
@@ -340,7 +366,7 @@ export default function RelatorioDiarioPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.logs.map((log) => {
+                  {logsPaginated.map((log) => {
                     const sc = statusConfig[log.status] || { label: log.status, variant: 'muted' as const }
                     return (
                       <tr key={log.id} className="border-b border-gray-50 dark:border-gray-700/50">
@@ -368,7 +394,18 @@ export default function RelatorioDiarioPage() {
                 </tbody>
               </table>
             </div>
-          )}
+            {logsPages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                <span className="text-xs text-gray-400">Página {safeLogsPage} de {logsPages} · {totalLogs} registros</span>
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" disabled={safeLogsPage <= 1} onClick={() => setLogsPage(safeLogsPage - 1)}>Anterior</Button>
+                  <Button variant="secondary" size="sm" disabled={safeLogsPage >= logsPages} onClick={() => setLogsPage(safeLogsPage + 1)}>Próxima</Button>
+                </div>
+              </div>
+            )}
+            </>
+            )
+          })()}
         </CardContent>
       </Card>
     </div>

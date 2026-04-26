@@ -61,6 +61,8 @@ export default function AssinaturasPage() {
   const [loading, setLoading] = useState(true)
   const [includeInactive, setIncludeInactive] = useState(true)
   const [erpBlock, setErpBlock] = useState(false)
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 10
 
   const [clients, setClients] = useState<ClientOption[]>([])
   const [products, setProducts] = useState<ProductOption[]>([])
@@ -213,7 +215,13 @@ export default function AssinaturasPage() {
               <Repeat className="w-8 h-8 text-gray-300 mx-auto mb-2" />
               <p className="text-gray-400 text-sm">Nenhuma assinatura cadastrada.</p>
             </div>
-          ) : (
+          ) : (() => {
+            const total = subs.length
+            const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+            const safePage = Math.min(page, pages)
+            const paginated = subs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+            return (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -230,7 +238,7 @@ export default function AssinaturasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {subs.map((s) => (
+                  {paginated.map((s) => (
                     <tr key={s.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
                       <td className="px-4 py-2.5 font-medium text-gray-800 dark:text-gray-200">{s.client.name}</td>
                       <td className="px-4 py-2.5 text-gray-700 dark:text-gray-300">{s.product.name}</td>
@@ -270,7 +278,18 @@ export default function AssinaturasPage() {
                 </tbody>
               </table>
             </div>
-          )}
+            {pages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                <span className="text-xs text-gray-400">Página {safePage} de {pages} · {total} assinatura(s)</span>
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
+                  <Button variant="secondary" size="sm" disabled={safePage >= pages} onClick={() => setPage(safePage + 1)}>Próxima</Button>
+                </div>
+              </div>
+            )}
+            </>
+            )
+          })()}
         </CardContent>
       </Card>
 

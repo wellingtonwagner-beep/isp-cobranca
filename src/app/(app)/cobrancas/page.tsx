@@ -47,6 +47,8 @@ export default function CobrancasPage() {
   const [triggerMsg, setTriggerMsg] = useState<{ ok: boolean; text: string } | null>(null)
   const [filterStage, setFilterStage] = useState('')
   const [filterStatus, setFilterStatus] = useState('')
+  const [page, setPage] = useState(1)
+  const PAGE_SIZE = 10
 
   async function load() {
     setLoading(true)
@@ -188,7 +190,7 @@ export default function CobrancasPage() {
           <select
             className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
             value={filterStage}
-            onChange={(e) => setFilterStage(e.target.value)}
+            onChange={(e) => { setFilterStage(e.target.value); setPage(1) }}
           >
             <option value="">Todos os estágios</option>
             <option value="D_MINUS_5">D-5</option>
@@ -202,7 +204,7 @@ export default function CobrancasPage() {
           <select
             className="text-sm border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-200"
             value={filterStatus}
-            onChange={(e) => setFilterStatus(e.target.value)}
+            onChange={(e) => { setFilterStatus(e.target.value); setPage(1) }}
           >
             <option value="">Todos os status</option>
             <option value="sent">Enviado</option>
@@ -232,11 +234,16 @@ export default function CobrancasPage() {
               if (filterStatus && log.status !== filterStatus) return false
               return true
             })
-            return filtered.length === 0 ? (
+            const total = filtered.length
+            const pages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+            const safePage = Math.min(page, pages)
+            const paginated = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
+            return total === 0 ? (
               <div className="py-12 text-center text-gray-400 text-sm">
                 Nenhum envio encontrado com os filtros selecionados.
               </div>
             ) : (
+            <>
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
@@ -250,7 +257,7 @@ export default function CobrancasPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {filtered.map((log) => {
+                  {paginated.map((log) => {
                     const sc = statusConfig[log.status] || { label: log.status, variant: 'muted' as const }
                     return (
                       <tr key={log.id} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30">
@@ -291,6 +298,16 @@ export default function CobrancasPage() {
                 </tbody>
               </table>
             </div>
+            {pages > 1 && (
+              <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 dark:border-gray-700">
+                <span className="text-xs text-gray-400">Página {safePage} de {pages} · {total} registros</span>
+                <div className="flex gap-2">
+                  <Button variant="secondary" size="sm" disabled={safePage <= 1} onClick={() => setPage(safePage - 1)}>Anterior</Button>
+                  <Button variant="secondary" size="sm" disabled={safePage >= pages} onClick={() => setPage(safePage + 1)}>Próxima</Button>
+                </div>
+              </div>
+            )}
+            </>
             )
           })()}
         </CardContent>
