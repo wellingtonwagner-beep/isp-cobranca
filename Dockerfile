@@ -2,8 +2,12 @@ FROM node:20-alpine
 RUN apk add --no-cache libc6-compat openssl
 WORKDIR /app
 
+# Limita uso de memoria do Node durante install e build (evita OOM em VPS pequena).
+ENV NODE_OPTIONS="--max-old-space-size=1024"
+
 COPY package.json package-lock.json ./
-RUN npm ci
+# Flags reduzem trabalho de rede/log e o paralelismo de download (menos pico de RAM).
+RUN npm ci --prefer-offline --no-audit --no-fund --loglevel=error --maxsockets=4
 
 COPY . .
 RUN npx prisma generate
