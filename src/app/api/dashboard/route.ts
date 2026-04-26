@@ -13,7 +13,7 @@ export async function GET() {
     const todayEnd = new Date(`${today}T23:59:59.999Z`)
     const monthStart = new Date(`${today.slice(0, 7)}-01T00:00:00.000Z`)
 
-    const [totalClients, activeClients, openInvoices, overdueInvoices, todayLogs, monthLogs] =
+    const [totalClients, activeClients, openInvoices, overdueInvoices, todayLogs, monthLogs, settings] =
       await Promise.all([
         prisma.client.count({ where: { companyId } }),
         prisma.client.count({ where: { companyId, status: 'ativo' } }),
@@ -23,9 +23,13 @@ export async function GET() {
         }),
         prisma.messageLog.count({ where: { companyId, sentAt: { gte: todayStart, lte: todayEnd } } }),
         prisma.messageLog.count({ where: { companyId, sentAt: { gte: monthStart } } }),
+        prisma.companySettings.findUnique({ where: { companyId }, select: { erpType: true } }),
       ])
 
-    return NextResponse.json({ totalClients, activeClients, openInvoices, overdueInvoices, todayLogs, monthLogs })
+    return NextResponse.json({
+      totalClients, activeClients, openInvoices, overdueInvoices, todayLogs, monthLogs,
+      erpType: settings?.erpType || 'sgp',
+    })
   } catch (err) {
     console.error('[GET /api/dashboard]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

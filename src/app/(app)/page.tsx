@@ -20,6 +20,7 @@ interface DashboardData {
   overdueInvoices: number
   todayLogs: number
   monthLogs: number
+  erpType?: string
 }
 
 interface AnalyticsData {
@@ -388,40 +389,42 @@ export default function DashboardPage() {
       )}
 
       {/* Atalhos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardContent className="py-5">
-            <div className="flex items-center gap-3 mb-3">
-              <RefreshCw className="text-purple-600 dark:text-purple-400 w-4 h-4" />
-              <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Sincronização</h3>
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Sincronize clientes e faturas do ERP manualmente.</p>
-            {syncMsg && (
-              <p className="text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded px-2 py-1 mb-3 flex items-center justify-between gap-2">
-                <span>{syncMsg}</span>
-                {syncCountdown > 0 && (
-                  <span className="opacity-80 whitespace-nowrap font-medium">
-                    {Math.floor(syncCountdown / 60)}:{String(syncCountdown % 60).padStart(2, '0')}
-                  </span>
-                )}
-              </p>
-            )}
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleSync('clientes')}
-                className="text-xs bg-white dark:bg-gray-700 border border-purple-200 dark:border-gray-600 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors"
-              >
-                Clientes
-              </button>
-              <button
-                onClick={() => handleSync('faturas')}
-                className="text-xs bg-white dark:bg-gray-700 border border-purple-200 dark:border-gray-600 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors"
-              >
-                Faturas
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+      <div className={`grid grid-cols-1 ${data.erpType === 'manual' ? 'md:grid-cols-2' : 'md:grid-cols-3'} gap-4`}>
+        {data.erpType !== 'manual' && (
+          <Card>
+            <CardContent className="py-5">
+              <div className="flex items-center gap-3 mb-3">
+                <RefreshCw className="text-purple-600 dark:text-purple-400 w-4 h-4" />
+                <h3 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">Sincronização</h3>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">Sincronize clientes e faturas do ERP manualmente.</p>
+              {syncMsg && (
+                <p className="text-xs text-purple-700 dark:text-purple-300 bg-purple-50 dark:bg-purple-900/30 rounded px-2 py-1 mb-3 flex items-center justify-between gap-2">
+                  <span>{syncMsg}</span>
+                  {syncCountdown > 0 && (
+                    <span className="opacity-80 whitespace-nowrap font-medium">
+                      {Math.floor(syncCountdown / 60)}:{String(syncCountdown % 60).padStart(2, '0')}
+                    </span>
+                  )}
+                </p>
+              )}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => handleSync('clientes')}
+                  className="text-xs bg-white dark:bg-gray-700 border border-purple-200 dark:border-gray-600 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Clientes
+                </button>
+                <button
+                  onClick={() => handleSync('faturas')}
+                  className="text-xs bg-white dark:bg-gray-700 border border-purple-200 dark:border-gray-600 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-lg hover:bg-purple-50 dark:hover:bg-gray-600 transition-colors"
+                >
+                  Faturas
+                </button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardContent className="py-5">
