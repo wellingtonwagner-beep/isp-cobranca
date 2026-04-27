@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { createSgpClient } from '@/lib/sgp'
 import { createHubsoftClient, HubSoftClient } from '@/lib/hubsoft'
 import { normalizePhone } from '@/lib/utils'
+import { buildClientSearchKey } from '@/lib/search-key'
 
 export async function POST(req: NextRequest) {
   const secret = req.headers.get('x-cron-secret')
@@ -66,15 +67,18 @@ async function syncSgp(companyId: string, settings: Record<string, unknown>) {
           }
         }
 
+        const searchKey = buildClientSearchKey({ name: c.nome, cpfCnpj: c.cpfcnpj, whatsapp, phone: null })
         const client = await prisma.client.upsert({
           where: { companyId_externalId: { companyId, externalId } },
           update: {
             name: c.nome, cpfCnpj: c.cpfcnpj, city: c.endereco?.cidade || null,
             whatsapp: whatsapp ?? undefined, sgpRaw: JSON.stringify(c), syncedAt: new Date(),
+            searchKey,
           },
           create: {
             companyId, externalId, name: c.nome, cpfCnpj: c.cpfcnpj,
             city: c.endereco?.cidade || null, whatsapp, sgpRaw: JSON.stringify(c),
+            searchKey,
           },
         })
         clientesSynced++
@@ -125,17 +129,20 @@ async function syncHubsoft(companyId: string, settings: Record<string, unknown>)
         }
         const clientStatus = statusMap[c.servicos?.[0]?.status_prefixo || ''] || 'ativo'
 
+        const searchKey = buildClientSearchKey({ name: c.nome_razaosocial, cpfCnpj, whatsapp, phone: null })
         const client = await prisma.client.upsert({
           where: { companyId_externalId: { companyId, externalId } },
           update: {
             name: c.nome_razaosocial, cpfCnpj, whatsapp: whatsapp ?? undefined,
             status: clientStatus, planName: c.servicos?.[0]?.nome || null,
             sgpRaw: JSON.stringify(c), syncedAt: new Date(),
+            searchKey,
           },
           create: {
             companyId, externalId, name: c.nome_razaosocial, cpfCnpj, whatsapp,
             status: clientStatus, planName: c.servicos?.[0]?.nome || null,
             sgpRaw: JSON.stringify(c),
+            searchKey,
           },
         })
         clientesSynced++

@@ -13,7 +13,9 @@
       "Bash(git status *)",
       "Bash(npx next *)",
       "Bash(pandoc --version)",
-      "Bash(npx --yes md-to-pdf docs/MANUAL.md)"
+      "Bash(npx --yes md-to-pdf docs/MANUAL.md)",
+      "WebFetch(domain:developers.c6bank.com.br)",
+      "WebFetch(domain:www.c6bank.com.br)"
     ],
     "additionalDirectories": [
       "c:\\projetos\\isp-cobranca\\src\\app\\api\\relatorios",

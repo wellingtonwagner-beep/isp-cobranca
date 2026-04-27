@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCompanyId } from '@/lib/session'
+import { buildProductSearchKey } from '@/lib/search-key'
 
 const VALID_RECURRENCE = ['once', 'monthly', 'yearly']
 
@@ -58,10 +59,12 @@ export async function POST(req: NextRequest) {
     }
     const rec = recurrence && VALID_RECURRENCE.includes(recurrence) ? recurrence : 'once'
 
+    const productName = String(name).trim()
     const product = await prisma.product.create({
       data: {
         companyId,
-        name: String(name).trim(),
+        name: productName,
+        searchKey: buildProductSearchKey({ name: productName }),
         description: description?.trim() || null,
         amount: amountNum,
         recurrence: rec,

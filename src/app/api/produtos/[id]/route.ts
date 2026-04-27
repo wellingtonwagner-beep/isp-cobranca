@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCompanyId } from '@/lib/session'
+import { buildProductSearchKey } from '@/lib/search-key'
 
 const VALID_RECURRENCE = ['once', 'monthly', 'yearly']
 
@@ -45,6 +46,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
       }
       data.name = String(name).trim()
+      data.searchKey = buildProductSearchKey({ name: data.name as string })
     }
     if (description !== undefined) data.description = description?.trim() || null
     if (amount !== undefined) {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCompanyId } from '@/lib/session'
+import { buildClientSearchKey } from '@/lib/search-key'
 
 async function requireManualMode(companyId: string): Promise<string | null> {
   const settings = await prisma.companySettings.findUnique({
@@ -28,17 +29,18 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
     }
 
+    const data = {
+      companyId,
+      name: name.trim(),
+      cpfCnpj: cpfCnpj?.trim() || null,
+      email: email?.trim() || null,
+      phone: phone?.trim() || null,
+      whatsapp: whatsapp?.trim() || null,
+      status: status || 'ativo',
+      city: city?.trim() || null,
+    }
     const client = await prisma.client.create({
-      data: {
-        companyId,
-        name: name.trim(),
-        cpfCnpj: cpfCnpj?.trim() || null,
-        email: email?.trim() || null,
-        phone: phone?.trim() || null,
-        whatsapp: whatsapp?.trim() || null,
-        status: status || 'ativo',
-        city: city?.trim() || null,
-      },
+      data: { ...data, searchKey: buildClientSearchKey(data) },
     })
 
     return NextResponse.json({ ok: true, client })
@@ -77,11 +79,13 @@ export async function GET(req: NextRequest) {
     const where: Record<string, unknown> = { companyId }
 
     if (q) {
+      // searchKey contem nome+iniciais+identificadores em lowercase, entao
+      // uma busca substring/insensitive cobre nome completo, partes do nome
+      // e iniciais (ex: "mjs" matcha "MARIA JULIA SILVA").
       where.OR = [
+        { searchKey: { contains: q, mode: 'insensitive' } },
+        // Fallback: clientes antigos sem searchKey populado (paranoia)
         { name: { contains: q, mode: 'insensitive' } },
-        { cpfCnpj: { contains: q, mode: 'insensitive' } },
-        { phone: { contains: q, mode: 'insensitive' } },
-        { whatsapp: { contains: q, mode: 'insensitive' } },
       ]
     }
 

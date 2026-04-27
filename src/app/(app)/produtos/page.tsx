@@ -4,8 +4,9 @@ import { useEffect, useState, useCallback } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Package, Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react'
+import { Package, Plus, Edit2, Trash2, X, Loader2, Search } from 'lucide-react'
 import { SortableTh, toggleSort, type SortDir } from '@/components/ui/sortable-th'
+import { buildProductSearchKey } from '@/lib/search-key'
 
 interface Product {
   id: string
@@ -55,6 +56,7 @@ export default function ProdutosPage() {
   const [includeInactive, setIncludeInactive] = useState(true)
   const [erpBlock, setErpBlock] = useState(false)
   const [page, setPage] = useState(1)
+  const [q, setQ] = useState('')
   const PAGE_SIZE = 10
   type SortField = 'name' | 'recurrence' | 'amount' | 'invoices' | 'subscriptions' | 'active'
   const [sortBy, setSortBy] = useState<SortField>('name')
@@ -201,6 +203,20 @@ export default function ProdutosPage() {
         </div>
       </div>
 
+      <Card className="mb-5">
+        <CardContent className="py-3 flex gap-3 flex-wrap items-center">
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <Search size={14} className="text-gray-400" />
+            <input
+              className="flex-1 text-sm outline-none bg-transparent placeholder-gray-400 dark:text-gray-200"
+              placeholder="Buscar por nome ou iniciais (ex: PRA = PLANO RESIDENCIAL A)..."
+              value={q}
+              onChange={(e) => { setQ(e.target.value); setPage(1) }}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardContent className="p-0">
           {loading ? (
@@ -211,8 +227,13 @@ export default function ProdutosPage() {
               <p className="text-gray-400 text-sm">Nenhum produto cadastrado.</p>
             </div>
           ) : (() => {
+            const term = q.trim().toLowerCase()
+            const filtered = !term ? products : products.filter((p) => {
+              const key = buildProductSearchKey({ name: p.name }) + ' ' + (p.description?.toLowerCase() || '')
+              return key.includes(term)
+            })
             const dir = sortDir === 'asc' ? 1 : -1
-            const sorted = [...products].sort((a, b) => {
+            const sorted = [...filtered].sort((a, b) => {
               let av: string | number | boolean = ''
               let bv: string | number | boolean = ''
               if (sortBy === 'name') { av = a.name; bv = b.name }
@@ -319,20 +340,20 @@ export default function ProdutosPage() {
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
               <ModalField label="Nome *">
                 <input
-                  className="form-input"
+                  className="form-input uppercase"
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Ex: Plano 200MB Residencial"
+                  onChange={(e) => setForm({ ...form, name: e.target.value.toUpperCase() })}
+                  placeholder="NOME DO PRODUTO OU SERVIÇO"
                   autoFocus
                 />
               </ModalField>
 
               <ModalField label="Descrição">
                 <textarea
-                  className="form-input min-h-[60px]"
+                  className="form-input min-h-[60px] uppercase"
                   value={form.description}
-                  onChange={(e) => setForm({ ...form, description: e.target.value })}
-                  placeholder="Detalhes opcionais"
+                  onChange={(e) => setForm({ ...form, description: e.target.value.toUpperCase() })}
+                  placeholder="DETALHES OPCIONAIS"
                 />
               </ModalField>
 

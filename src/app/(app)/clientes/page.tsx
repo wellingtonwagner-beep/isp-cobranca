@@ -455,11 +455,11 @@ export default function ClientesPage() {
             <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
               <ClientField label="Nome *">
                 <input
-                  className="client-form-input"
+                  className="client-form-input uppercase"
                   value={clientForm.name}
-                  onChange={(e) => setClientForm({ ...clientForm, name: e.target.value })}
+                  onChange={(e) => setClientForm({ ...clientForm, name: e.target.value.toUpperCase() })}
                   autoFocus
-                  placeholder="Nome completo"
+                  placeholder="NOME COMPLETO"
                 />
               </ClientField>
 
@@ -517,10 +517,10 @@ export default function ClientesPage() {
 
               <ClientField label="Cidade">
                 <input
-                  className="client-form-input"
+                  className="client-form-input uppercase"
                   value={clientForm.city}
-                  onChange={(e) => setClientForm({ ...clientForm, city: e.target.value })}
-                  placeholder="Ex: PIUMHI"
+                  onChange={(e) => setClientForm({ ...clientForm, city: e.target.value.toUpperCase() })}
+                  placeholder="EX: PIUMHI"
                 />
               </ClientField>
 

@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCompanyId } from '@/lib/session'
+import { buildClientSearchKey } from '@/lib/search-key'
 
 async function requireManualMode(companyId: string): Promise<string | null> {
   const settings = await prisma.companySettings.findUnique({
@@ -41,6 +42,18 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
       return NextResponse.json({ error: 'Nome é obrigatório' }, { status: 400 })
     }
 
+    // Carrega estado atual para recomputar searchKey com dados completos
+    const current = await prisma.client.findUnique({
+      where: { id: params.id },
+      select: { name: true, cpfCnpj: true, whatsapp: true, phone: true },
+    })
+    const merged = {
+      name: name !== undefined ? String(name).trim() : current!.name,
+      cpfCnpj: cpfCnpj !== undefined ? (cpfCnpj?.trim() || null) : current!.cpfCnpj,
+      whatsapp: whatsapp !== undefined ? (whatsapp?.trim() || null) : current!.whatsapp,
+      phone: phone !== undefined ? (phone?.trim() || null) : current!.phone,
+    }
+
     const client = await prisma.client.update({
       where: { id: params.id },
       data: {
@@ -51,6 +64,7 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         ...(whatsapp !== undefined && { whatsapp: whatsapp?.trim() || null }),
         ...(status !== undefined && { status }),
         ...(city !== undefined && { city: city?.trim() || null }),
+        searchKey: buildClientSearchKey(merged),
       },
     })
 

@@ -95,6 +95,7 @@ model CompanySettings {
 model Client {
   id         String  @id @default(cuid())
   externalId String? // ID no sistema externo (SGP, etc.)
+  searchKey  String? // nome + iniciais + cpf + telefones, lower; usado em LIKE para busca por substring/iniciais
   companyId  String
   company    Company @relation(fields: [companyId], references: [id], onDelete: Cascade)
 
@@ -128,6 +129,7 @@ model Product {
   companyId   String
   company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
   name        String
+  searchKey   String?  // nome + iniciais; usado em LIKE para busca
   description String?
   amount      Float
   recurrence  String   @default("once") // once (avulsa) | monthly | yearly
